@@ -21,30 +21,30 @@ export default function ResearchOutput({ research, isLoading, statusText }) {
     <div style={{ padding: '20px', animation: 'fadeInUp 0.35s ease' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fafafa', margin: 0 }}>{research.companyName}</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>{research.companyName}</h3>
           <a href={research.input?.startsWith('http') ? research.input : `https://${research.input}`}
             target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 12, color: '#71717a', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, textDecoration: 'none' }}>
+            style={{ fontSize: 12, color: '#4A7A78', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, textDecoration: 'none' }}>
             {research.input} <ExternalLink size={10} />
           </a>
         </div>
       </div>
 
       <Section title="Summary">
-        <p style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.65, margin: 0 }}>{research.summary}</p>
+        <p style={{ fontSize: 13, color: '#8ABAB8', lineHeight: 1.65, margin: 0 }}>{research.summary}</p>
       </Section>
 
-      <Section title="Recent News" icon={<TrendingUp size={12} color="#f59e0b" />}>
-        <p style={{ fontSize: 13, color: '#a1a1aa', lineHeight: 1.65, margin: 0 }}>{research.recentNews}</p>
+      <Section title="Recent News" icon={<TrendingUp size={12} color="#00D4C8" />}>
+        <p style={{ fontSize: 13, color: '#8ABAB8', lineHeight: 1.65, margin: 0 }}>{research.recentNews}</p>
       </Section>
 
       {research.techStack?.length > 0 && (
-        <Section title="Detected Tech Stack" icon={<Cpu size={12} color="#a78bfa" />}>
+        <Section title="Detected Tech Stack" icon={<Cpu size={12} color="#00D4C8" />}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {research.techStack.map(t => (
               <span key={t} style={{
-                fontSize: 11, color: '#c4b5fd', background: 'rgba(167,139,250,0.1)',
-                border: '1px solid rgba(167,139,250,0.2)', borderRadius: 6, padding: '3px 8px',
+                fontSize: 11, color: '#c4b5fd', background: 'rgba(0,212,200,0.1)',
+                border: '1px solid rgba(0,212,200,0.2)', borderRadius: 6, padding: '3px 8px',
               }}>{t}</span>
             ))}
           </div>
@@ -71,8 +71,8 @@ export default function ResearchOutput({ research, isLoading, statusText }) {
               <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
                 style={{
                   fontSize: 11, color: '#60a5fa', display: 'flex', alignItems: 'center', gap: 6,
-                  textDecoration: 'none', padding: '6px 10px', background: '#18181b',
-                  borderRadius: 6, border: '1px solid #27272a',
+                  textDecoration: 'none', padding: '6px 10px', background: '#111A1A',
+                  borderRadius: 6, border: '1px solid #1E3030',
                 }}>
                 <ExternalLink size={10} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -92,7 +92,7 @@ function Section({ title, icon, children }) {
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {icon}
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#52525b', letterSpacing: '0.6px', textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.6px', textTransform: 'uppercase' }}>{title}</span>
       </div>
       {children}
     </div>

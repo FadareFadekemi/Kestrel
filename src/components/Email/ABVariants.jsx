@@ -24,33 +24,33 @@ export default function ABVariants({ variants, isLoading, statusText }) {
   return (
     <div style={{ padding: 20, animation: 'fadeInUp 0.35s ease' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#a1a1aa' }}>A/B Variants</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8' }}>A/B Variants</span>
         <div style={{ display: 'flex', gap: 4 }}>
           {['A', 'B'].map(v => (
             <button key={v} onClick={() => setActive(v)} style={{
               width: 32, height: 28, fontSize: 12, fontWeight: 700,
-              color: active === v ? '#09090b' : '#71717a',
-              background: active === v ? '#f59e0b' : '#27272a',
-              border: `1px solid ${active === v ? '#f59e0b' : '#3f3f46'}`,
+              color: active === v ? '#0A0F0F' : '#4A7A78',
+              background: active === v ? '#00D4C8' : '#1E3030',
+              border: `1px solid ${active === v ? '#00D4C8' : '#264040'}`,
               borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s',
             }}>{v}</button>
           ))}
         </div>
       </div>
 
-      <div style={{ background: '#18181b', borderRadius: 8, border: '1px solid #27272a', padding: '12px 14px' }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: '#f4f4f5', margin: '0 0 10px', borderBottom: '1px solid #27272a', paddingBottom: 8 }}>
+      <div style={{ background: '#111A1A', borderRadius: 8, border: '1px solid #1E3030', padding: '12px 14px' }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: '#E8F5F4', margin: '0 0 10px', borderBottom: '1px solid #1E3030', paddingBottom: 8 }}>
           {email?.subject}
         </p>
-        <pre style={{ fontSize: 12, color: '#d4d4d8', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontFamily: 'inherit' }}>
+        <pre style={{ fontSize: 12, color: '#C5E8E6', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontFamily: 'inherit' }}>
           {email?.body}
         </pre>
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
-        <Chip label={`Variant ${active}`} color="#f59e0b" />
-        <Chip label={email?.tone} color="#a78bfa" />
-        <Chip label={`${email?.wordCount || '—'} words`} color="#71717a" />
+        <Chip label={`Variant ${active}`} color="#00D4C8" />
+        <Chip label={email?.tone} color="#00D4C8" />
+        <Chip label={`${email?.wordCount || '—'} words`} color="#4A7A78" />
       </div>
     </div>
   );

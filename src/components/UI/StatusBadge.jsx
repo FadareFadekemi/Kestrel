@@ -1,8 +1,8 @@
 const STATUS_STYLES = {
-  'Not Contacted': { color: '#71717a', bg: '#27272a', dot: '#52525b' },
+  'Not Contacted': { color: '#4A7A78', bg: '#1E3030', dot: '#4A7A78' },
   'Contacted':     { color: '#60a5fa', bg: 'rgba(96,165,250,0.1)', dot: '#3b82f6' },
   'Replied':       { color: '#34d399', bg: 'rgba(52,211,153,0.1)', dot: '#10b981' },
-  'Converted':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', dot: '#f59e0b' },
+  'Converted':     { color: '#00D4C8', bg: 'rgba(0,212,200,0.1)', dot: '#00D4C8' },
 };
 
 export default function StatusBadge({ status, size = 'sm' }) {

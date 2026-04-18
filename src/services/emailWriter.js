@@ -57,10 +57,10 @@ export async function runEmailWriterAgent(profile, tone = 'Consultative', varian
 
   const techMention     = profile.techStack?.slice(0, 3).join(', ') || 'your current stack';
   const competitorNote  = profile.usesCompetitor && profile.competitorName
-    ? `Important: They currently use ${profile.competitorName} — a direct competitor to Kestrel. Reference this tactfully to create a displacement angle.`
+    ? `Important: They currently use ${profile.competitorName} — a direct competitor to techcori. Reference this tactfully to create a displacement angle.`
     : '';
 
-  const prompt = `You are an elite B2B SDR writing a cold outreach email for Kestrel — an AI-powered Sales Development platform that automates lead research, profiling, and personalized outreach at scale.
+  const prompt = `You are an elite B2B SDR writing a cold outreach email for techcori, an AI-powered Sales Development platform that automates lead research, profiling, and personalized outreach at scale.
 
 Target: ${profile.companyName}
 Contact: ${profile.contactName || 'the decision maker'}, ${profile.contactTitle || 'Sales Leader'}

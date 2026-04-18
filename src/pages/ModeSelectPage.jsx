@@ -8,7 +8,7 @@ export default function ModeSelectPage({ onSelect }) {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#09090b',
+      minHeight: '100vh', background: '#0A0F0F',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: isMobile ? '24px 16px' : 32,
       position: 'relative', overflow: 'hidden',
@@ -17,7 +17,7 @@ export default function ModeSelectPage({ onSelect }) {
       <div style={{
         position: 'fixed', top: '20%', left: '50%', transform: 'translate(-50%, -50%)',
         width: 700, height: 500, borderRadius: '50%', pointerEvents: 'none',
-        background: 'radial-gradient(ellipse, rgba(245,158,11,0.07) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse, rgba(0,212,200,0.07) 0%, transparent 70%)',
       }} />
 
       <div style={{ width: '100%', maxWidth: 780, position: 'relative', zIndex: 1 }}>
@@ -26,15 +26,15 @@ export default function ModeSelectPage({ onSelect }) {
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 52, height: 52, borderRadius: 14,
-            background: 'linear-gradient(135deg, #f59e0b, #b45309)',
-            boxShadow: '0 0 28px rgba(245,158,11,0.3)', marginBottom: 16,
+            background: 'linear-gradient(135deg, #00D4C8, #00B8AD)',
+            boxShadow: '0 0 28px rgba(0,212,200,0.3)', marginBottom: 16,
           }}>
-            <Zap size={24} color="#09090b" fill="#09090b" />
+            <Zap size={24} color="#0A0F0F" fill="#0A0F0F" />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fafafa', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
-            What brings you to Kestrel?
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#E8F5F4', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
+            What brings you to techcori?
           </h1>
-          <p style={{ fontSize: 14, color: '#52525b', margin: 0 }}>
+          <p style={{ fontSize: 14, color: '#4A7A78', margin: 0 }}>
             Choose your path — you can switch anytime from Settings
           </p>
         </div>
@@ -47,8 +47,8 @@ export default function ModeSelectPage({ onSelect }) {
         }}>
           {/* Company card */}
           <ModeCard
-            icon={<Building2 size={28} color="#f59e0b" />}
-            iconBg="rgba(245,158,11,0.1)"
+            icon={<Building2 size={28} color="#00D4C8" />}
+            iconBg="rgba(0,212,200,0.1)"
             badge="For Sales & GTM Teams"
             title="I'm a Company"
             description="Find leads, research companies, score them, and send personalised outreach emails that convert."
@@ -63,15 +63,15 @@ export default function ModeSelectPage({ onSelect }) {
 
           {/* Job Seeker card */}
           <ModeCard
-            icon={<Target size={28} color="#a78bfa" />}
-            iconBg="rgba(167,139,250,0.1)"
+            icon={<Target size={28} color="#00D4C8" />}
+            iconBg="rgba(0,212,200,0.1)"
             badge="For Job Seekers"
             title="I'm a Job Seeker"
             description="Build your CV, find companies hiring for your role, and reach hiring managers directly with personalised emails."
             features={['Target company research', 'Personalised outreach', 'Hiring manager contacts']}
             buttonLabel="Get Started"
             buttonStyle="outlined"
-            accentColor="#a78bfa"
+            accentColor="#00D4C8"
             isHovered={hovering === 'jobseeker'}
             onMouseEnter={() => setHovering('jobseeker')}
             onMouseLeave={() => setHovering(null)}
@@ -79,7 +79,7 @@ export default function ModeSelectPage({ onSelect }) {
           />
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#3f3f46', marginTop: 32 }}>
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#264040', marginTop: 32 }}>
           Sharp Intelligence. Precise Outreach.
         </p>
       </div>
@@ -87,14 +87,14 @@ export default function ModeSelectPage({ onSelect }) {
   );
 }
 
-function ModeCard({ icon, iconBg, badge, title, description, features, buttonLabel, buttonStyle, accentColor = '#f59e0b', isHovered, onMouseEnter, onMouseLeave, onClick }) {
+function ModeCard({ icon, iconBg, badge, title, description, features, buttonLabel, buttonStyle, accentColor = '#00D4C8', isHovered, onMouseEnter, onMouseLeave, onClick }) {
   return (
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        background: isHovered ? '#1c1c1f' : '#18181b',
-        border: `1px solid ${isHovered ? accentColor + '40' : '#27272a'}`,
+        background: isHovered ? '#1c1c1f' : '#111A1A',
+        border: `1px solid ${isHovered ? accentColor + '40' : '#1E3030'}`,
         borderRadius: 16, padding: 28,
         cursor: 'pointer', transition: 'all 0.2s ease',
         display: 'flex', flexDirection: 'column', gap: 20,
@@ -121,10 +121,10 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
           }}>
             {icon}
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fafafa', margin: 0 }}>{title}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>{title}</h2>
         </div>
 
-        <p style={{ fontSize: 13, color: '#71717a', lineHeight: 1.65, margin: 0 }}>{description}</p>
+        <p style={{ fontSize: 13, color: '#4A7A78', lineHeight: 1.65, margin: 0 }}>{description}</p>
       </div>
 
       {/* Features */}
@@ -132,7 +132,7 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
         {features.map(f => (
           <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: '#a1a1aa' }}>{f}</span>
+            <span style={{ fontSize: 12, color: '#8ABAB8' }}>{f}</span>
           </li>
         ))}
       </ul>
@@ -146,7 +146,7 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           transition: 'all 0.15s',
           ...(buttonStyle === 'filled'
-            ? { background: 'linear-gradient(135deg, #f59e0b, #b45309)', color: '#09090b', border: 'none' }
+            ? { background: 'linear-gradient(135deg, #00D4C8, #00B8AD)', color: '#0A0F0F', border: 'none' }
             : { background: 'transparent', color: accentColor, border: `1.5px solid ${accentColor}` }
           ),
         }}

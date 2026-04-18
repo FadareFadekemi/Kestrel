@@ -188,7 +188,7 @@ export const MOCK_SEQUENCES = [
       },
       {
         day: 3,
-        subject: "Following up — {{company}} + Kestrel",
+        subject: "Following up: {{company}} + techcori",
         preview: "Wanted to resurface this — saw you're using {{tech_stack}} which is exactly...",
         tone: "Consultative",
         type: "email"
@@ -196,7 +196,7 @@ export const MOCK_SEQUENCES = [
       {
         day: 7,
         subject: "Last note — specific idea for {{company}}",
-        preview: "I'll keep this short. One concrete thing Kestrel does for teams like {{company}}...",
+        preview: "I'll keep this short. One concrete thing techcori does for teams like {{company}}...",
         tone: "Casual",
         type: "email"
       }

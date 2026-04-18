@@ -12,10 +12,10 @@ export default function ProfileOutput({ profile, isLoading, statusText, streamTe
         </div>
         {streamText && (
           <div style={{
-            background: '#18181b', borderRadius: 8, padding: 12, marginBottom: 12,
-            border: '1px solid #27272a', maxHeight: 120, overflow: 'hidden',
+            background: '#111A1A', borderRadius: 8, padding: 12, marginBottom: 12,
+            border: '1px solid #1E3030', maxHeight: 120, overflow: 'hidden',
           }}>
-            <pre style={{ fontSize: 10, color: '#3f3f46', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            <pre style={{ fontSize: 10, color: '#264040', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
               {streamText.slice(-400)}
             </pre>
           </div>
@@ -38,11 +38,11 @@ export default function ProfileOutput({ profile, isLoading, statusText, streamTe
             <MetaChip icon={<MapPin size={10} />} label={profile.location} />
             <MetaChip icon={<DollarSign size={10} />} label={profile.fundingStage} />
           </div>
-          <p style={{ fontSize: 12, color: '#71717a', margin: 0, lineHeight: 1.5 }}>
-            <span style={{ color: '#a1a1aa' }}>{profile.contactName}</span>
+          <p style={{ fontSize: 12, color: '#4A7A78', margin: 0, lineHeight: 1.5 }}>
+            <span style={{ color: '#8ABAB8' }}>{profile.contactName}</span>
             {profile.contactTitle ? ` · ${profile.contactTitle}` : ''}
           </p>
-          <p style={{ fontSize: 12, color: '#52525b', marginTop: 4, lineHeight: 1.5 }}>{profile.icp_fit}</p>
+          <p style={{ fontSize: 12, color: '#4A7A78', marginTop: 4, lineHeight: 1.5 }}>{profile.icp_fit}</p>
         </div>
         {/* Score rings */}
         <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
@@ -63,8 +63,8 @@ export default function ProfileOutput({ profile, isLoading, statusText, streamTe
       </div>
 
       {profile.scoreReasoning && (
-        <div style={{ background: '#18181b', borderRadius: 8, padding: '10px 12px', marginBottom: 16, border: '1px solid #27272a' }}>
-          <p style={{ fontSize: 11, color: '#71717a', margin: 0, lineHeight: 1.55 }}>{profile.scoreReasoning}</p>
+        <div style={{ background: '#111A1A', borderRadius: 8, padding: '10px 12px', marginBottom: 16, border: '1px solid #1E3030' }}>
+          <p style={{ fontSize: 11, color: '#4A7A78', margin: 0, lineHeight: 1.55 }}>{profile.scoreReasoning}</p>
         </div>
       )}
 
@@ -75,7 +75,7 @@ export default function ProfileOutput({ profile, isLoading, statusText, streamTe
             {profile.painPoints.map((p, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <span style={{ fontSize: 10, color: '#ef4444', marginTop: 2 }}>•</span>
-                <span style={{ fontSize: 12, color: '#a1a1aa', lineHeight: 1.5 }}>{p}</span>
+                <span style={{ fontSize: 12, color: '#8ABAB8', lineHeight: 1.5 }}>{p}</span>
               </div>
             ))}
           </div>
@@ -89,7 +89,7 @@ export default function ProfileOutput({ profile, isLoading, statusText, streamTe
             {profile.growthSignals.map((s, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <span style={{ fontSize: 10, color: '#10b981', marginTop: 2 }}>↑</span>
-                <span style={{ fontSize: 12, color: '#a1a1aa', lineHeight: 1.5 }}>{s}</span>
+                <span style={{ fontSize: 12, color: '#8ABAB8', lineHeight: 1.5 }}>{s}</span>
               </div>
             ))}
           </div>
@@ -98,12 +98,12 @@ export default function ProfileOutput({ profile, isLoading, statusText, streamTe
 
       {/* Tech stack */}
       {profile.techStack?.length > 0 && (
-        <Section title="Tech Stack" icon={<Cpu size={12} color="#a78bfa" />}>
+        <Section title="Tech Stack" icon={<Cpu size={12} color="#00D4C8" />}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {profile.techStack.map(t => (
               <span key={t} style={{
-                fontSize: 11, color: '#c4b5fd', background: 'rgba(167,139,250,0.08)',
-                border: '1px solid rgba(167,139,250,0.15)', borderRadius: 5, padding: '2px 7px',
+                fontSize: 11, color: '#c4b5fd', background: 'rgba(0,212,200,0.08)',
+                border: '1px solid rgba(0,212,200,0.15)', borderRadius: 5, padding: '2px 7px',
               }}>{t}</span>
             ))}
           </div>
@@ -134,8 +134,8 @@ function MetaChip({ icon, label }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 11, color: '#71717a', background: '#27272a',
-      border: '1px solid #3f3f46', borderRadius: 5, padding: '3px 8px',
+      fontSize: 11, color: '#4A7A78', background: '#1E3030',
+      border: '1px solid #264040', borderRadius: 5, padding: '3px 8px',
     }}>
       {icon} {label}
     </span>
@@ -147,7 +147,7 @@ function Section({ title, icon, children }) {
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {icon}
-        <span style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.6px', textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.6px', textTransform: 'uppercase' }}>{title}</span>
       </div>
       {children}
     </div>
@@ -155,14 +155,14 @@ function Section({ title, icon, children }) {
 }
 
 function ScoreBar({ label, value }) {
-  const color = value >= 80 ? '#f59e0b' : value >= 60 ? '#60a5fa' : value >= 40 ? '#a78bfa' : '#ef4444';
+  const color = value >= 80 ? '#00D4C8' : value >= 60 ? '#60a5fa' : value >= 40 ? '#00D4C8' : '#ef4444';
   return (
-    <div style={{ background: '#18181b', borderRadius: 8, padding: '8px 10px', border: '1px solid #27272a' }}>
+    <div style={{ background: '#111A1A', borderRadius: 8, padding: '8px 10px', border: '1px solid #1E3030' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-        <span style={{ fontSize: 10, color: '#71717a' }}>{label}</span>
+        <span style={{ fontSize: 10, color: '#4A7A78' }}>{label}</span>
         <span style={{ fontSize: 11, fontWeight: 700, color }}>{value}</span>
       </div>
-      <div style={{ height: 3, background: '#27272a', borderRadius: 2, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: '#1E3030', borderRadius: 2, overflow: 'hidden' }}>
         <div style={{
           height: '100%', width: `${value}%`, background: color,
           borderRadius: 2, transition: 'width 0.6s ease',

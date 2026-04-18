@@ -4,13 +4,13 @@ export default function ScoreRing({ score = 0, size = 64, label }) {
   const pct = Math.min(100, Math.max(0, score)) / 100;
   const dash = pct * circ;
 
-  const color = score >= 80 ? '#f59e0b' : score >= 60 ? '#60a5fa' : score >= 40 ? '#a78bfa' : '#ef4444';
+  const color = score >= 80 ? '#00D4C8' : score >= 60 ? '#60a5fa' : score >= 40 ? '#00D4C8' : '#ef4444';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#27272a" strokeWidth={5} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1E3030" strokeWidth={5} />
           <circle
             cx={size / 2} cy={size / 2} r={r} fill="none"
             stroke={color} strokeWidth={5}
@@ -27,7 +27,7 @@ export default function ScoreRing({ score = 0, size = 64, label }) {
           <span style={{ fontSize: size < 56 ? 13 : 16, fontWeight: 700, color, lineHeight: 1 }}>{score}</span>
         </div>
       </div>
-      {label && <span style={{ fontSize: 10, color: '#71717a', textAlign: 'center' }}>{label}</span>}
+      {label && <span style={{ fontSize: 10, color: '#4A7A78', textAlign: 'center' }}>{label}</span>}
     </div>
   );
 }

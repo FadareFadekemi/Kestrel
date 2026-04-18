@@ -60,8 +60,8 @@ export default function EmailEditor({ email, profile, onRetone, onGenerateAB, is
           <span style={{ fontSize: 12, color: '#60a5fa' }}>{statusText || 'Writing email...'}</span>
         </div>
         {streamText && (
-          <div style={{ background: '#18181b', borderRadius: 8, padding: 12, marginBottom: 12, border: '1px solid #27272a', maxHeight: 100, overflow: 'hidden' }}>
-            <pre style={{ fontSize: 10, color: '#3f3f46', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{streamText.slice(-300)}</pre>
+          <div style={{ background: '#111A1A', borderRadius: 8, padding: 12, marginBottom: 12, border: '1px solid #1E3030', maxHeight: 100, overflow: 'hidden' }}>
+            <pre style={{ fontSize: 10, color: '#264040', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{streamText.slice(-300)}</pre>
           </div>
         )}
         <SkeletonText lines={8} />
@@ -84,9 +84,9 @@ export default function EmailEditor({ email, profile, onRetone, onGenerateAB, is
               disabled={isLoading}
               style={{
                 fontSize: 11, fontWeight: 500,
-                color: selectedTone === t ? '#09090b' : '#71717a',
-                background: selectedTone === t ? '#f59e0b' : '#27272a',
-                border: `1px solid ${selectedTone === t ? '#f59e0b' : '#3f3f46'}`,
+                color: selectedTone === t ? '#0A0F0F' : '#4A7A78',
+                background: selectedTone === t ? '#00D4C8' : '#1E3030',
+                border: `1px solid ${selectedTone === t ? '#00D4C8' : '#264040'}`,
                 borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
@@ -107,12 +107,12 @@ export default function EmailEditor({ email, profile, onRetone, onGenerateAB, is
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 fontSize: 11, fontWeight: 600,
-                color: sendState === 'sent' ? '#09090b' : '#09090b',
+                color: sendState === 'sent' ? '#0A0F0F' : '#0A0F0F',
                 background: sendState === 'sent'
                   ? 'linear-gradient(135deg, #34d399, #059669)'
                   : sendState === 'error'
                   ? 'rgba(239,68,68,0.15)'
-                  : 'linear-gradient(135deg, #f59e0b, #b45309)',
+                  : 'linear-gradient(135deg, #00D4C8, #00B8AD)',
                 border: 'none', borderRadius: 6, padding: '5px 12px',
                 cursor: sendState === 'sending' || sendState === 'sent' ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s',
@@ -129,13 +129,13 @@ export default function EmailEditor({ email, profile, onRetone, onGenerateAB, is
 
       {/* Subject */}
       <div style={{ marginBottom: 10 }}>
-        <label style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.6px', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>Subject</label>
+        <label style={{ fontSize: 10, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.6px', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>Subject</label>
         <input
           value={subject}
           onChange={e => setSubject(e.target.value)}
           style={{
-            width: '100%', background: '#18181b', border: '1px solid #27272a',
-            borderRadius: 8, padding: '8px 12px', color: '#f4f4f5',
+            width: '100%', background: '#111A1A', border: '1px solid #1E3030',
+            borderRadius: 8, padding: '8px 12px', color: '#E8F5F4',
             fontSize: 13, fontWeight: 500, outline: 'none',
           }}
         />
@@ -143,14 +143,14 @@ export default function EmailEditor({ email, profile, onRetone, onGenerateAB, is
 
       {/* Body */}
       <div>
-        <label style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.6px', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>Body</label>
+        <label style={{ fontSize: 10, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.6px', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>Body</label>
         <textarea
           value={body}
           onChange={e => setBody(e.target.value)}
           rows={12}
           style={{
-            width: '100%', background: '#18181b', border: '1px solid #27272a',
-            borderRadius: 8, padding: '12px', color: '#d4d4d8',
+            width: '100%', background: '#111A1A', border: '1px solid #1E3030',
+            borderRadius: 8, padding: '12px', color: '#C5E8E6',
             fontSize: 13, lineHeight: 1.7, outline: 'none', resize: 'vertical',
             fontFamily: 'inherit',
           }}
@@ -158,14 +158,14 @@ export default function EmailEditor({ email, profile, onRetone, onGenerateAB, is
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-        <span style={{ fontSize: 11, color: '#3f3f46' }}>
+        <span style={{ fontSize: 11, color: '#264040' }}>
           {email.wordCount || body.split(/\s+/).filter(Boolean).length} words · Variant {email.variant || 'A'}
         </span>
-        <span style={{ fontSize: 11, color: '#3f3f46' }}>Placeholders: {'{{firstName}}'}, {'{{senderName}}'}</span>
+        <span style={{ fontSize: 11, color: '#264040' }}>Placeholders: {'{{firstName}}'}, {'{{senderName}}'}</span>
       </div>
       {contactEmail && (
-        <div style={{ marginTop: 8, fontSize: 11, color: '#52525b' }}>
-          Sending to: <span style={{ color: '#71717a' }}>{contactEmail}</span>
+        <div style={{ marginTop: 8, fontSize: 11, color: '#4A7A78' }}>
+          Sending to: <span style={{ color: '#4A7A78' }}>{contactEmail}</span>
         </div>
       )}
       {sendState === 'error' && sendError && (
@@ -186,9 +186,9 @@ function ActionBtn({ icon, label, onClick, highlight }) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 500,
-      color: highlight ? '#f59e0b' : '#71717a',
-      background: highlight ? 'rgba(245,158,11,0.1)' : '#27272a',
-      border: `1px solid ${highlight ? 'rgba(245,158,11,0.3)' : '#3f3f46'}`,
+      color: highlight ? '#00D4C8' : '#4A7A78',
+      background: highlight ? 'rgba(0,212,200,0.1)' : '#1E3030',
+      border: `1px solid ${highlight ? 'rgba(0,212,200,0.3)' : '#264040'}`,
       borderRadius: 6, padding: '5px 10px', cursor: 'pointer',
       transition: 'all 0.15s',
     }}>

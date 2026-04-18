@@ -1,10 +1,55 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-NG">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Security -->
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' http://localhost:* https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=(), usb=(), bluetooth=()" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Bricolage+Grotesque:wght@300;400;500;600;700&display=swap" />
+
+    <!-- PWA / theme -->
+    <meta name="theme-color" content="#00D4C8" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="techcori" />
+    <meta name="application-name" content="techcori" />
+
+    <!-- Manifest & icons -->
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>kestrel-app</title>
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#00D4C8" />
+
+    <!-- Primary meta -->
+    <title>techcori - AI Sales and Career Intelligence</title>
+    <meta name="description" content="techcori gives companies sharp lead intelligence and job seekers a competitive edge, powered by the same AI engine. Built for Nigeria. Work smart, rise sharp." />
+    <meta name="keywords" content="AI sales intelligence, job seeker Nigeria, cold email, CV optimiser, lead research, techcori" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="techcori" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="techcori - AI Sales and Career Intelligence" />
+    <meta property="og:description" content="Work smart, rise sharp. The AI platform for companies and job seekers in Nigeria." />
+    <meta property="og:site_name" content="techcori" />
+    <meta property="og:locale" content="en_NG" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="techcori - AI Sales and Career Intelligence" />
+    <meta name="twitter:description" content="Work smart, rise sharp. Built for Nigeria." />
   </head>
   <body>
     <div id="root"></div>

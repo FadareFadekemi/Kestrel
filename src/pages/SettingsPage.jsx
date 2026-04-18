@@ -47,30 +47,30 @@ export default function SettingsPage({ user, onUserUpdated }) {
   return (
     <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', overflowY: 'auto', height: '100%', maxWidth: 720 }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fafafa', margin: 0 }}>Settings</h1>
-        <p style={{ fontSize: 13, color: '#52525b', marginTop: 4 }}>
-          Your sender profile, used to personalise every outreach email Kestrel writes.
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Settings</h1>
+        <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>
+          Your sender profile, used to personalise every outreach email techcori writes.
         </p>
       </div>
 
       {!isComplete && (
         <div style={{
           display: 'flex', gap: 10, alignItems: 'flex-start',
-          background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)',
+          background: 'rgba(0,212,200,0.07)', border: '1px solid rgba(0,212,200,0.2)',
           borderRadius: 10, padding: '12px 16px', marginBottom: 24,
         }}>
-          <AlertCircle size={15} color="#f59e0b" style={{ marginTop: 1, flexShrink: 0 }} />
+          <AlertCircle size={15} color="#00D4C8" style={{ marginTop: 1, flexShrink: 0 }} />
           <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', margin: 0 }}>Profile incomplete</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#00D4C8', margin: 0 }}>Profile incomplete</p>
             <p style={{ fontSize: 12, color: '#92400e', margin: '3px 0 0', lineHeight: 1.5 }}>
-              Fill in your company name and product description so Kestrel can write emails that pitch <em>your</em> product, not a generic placeholder.
+              Fill in your company name and product description so techcori can write emails that pitch <em>your</em> product, not a generic placeholder.
             </p>
           </div>
         </div>
       )}
 
       <form onSubmit={handleSave}>
-        <Section title="Your Identity" icon={<User size={14} color="#f59e0b" />}>
+        <Section title="Your Identity" icon={<User size={14} color="#00D4C8" />}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <Field label="Your Name" placeholder="e.g. Sarah Johnson"
               value={form.name} onChange={v => set('name', v)} />
@@ -79,7 +79,7 @@ export default function SettingsPage({ user, onUserUpdated }) {
           </div>
         </Section>
 
-        <Section title="Your Company" icon={<Building size={14} color="#f59e0b" />}>
+        <Section title="Your Company" icon={<Building size={14} color="#00D4C8" />}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 14 }}>
             <Field label="Company Name *" placeholder="e.g. Acme Inc."
               value={form.company_name} onChange={v => set('company_name', v)} required />
@@ -88,7 +88,7 @@ export default function SettingsPage({ user, onUserUpdated }) {
           </div>
         </Section>
 
-        <Section title="What You Sell" icon={<FileText size={14} color="#f59e0b" />}>
+        <Section title="What You Sell" icon={<FileText size={14} color="#00D4C8" />}>
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Product / Service Description *</label>
             <textarea
@@ -98,7 +98,7 @@ export default function SettingsPage({ user, onUserUpdated }) {
               rows={5} required
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
             />
-            <p style={{ fontSize: 11, color: '#52525b', marginTop: 5 }}>
+            <p style={{ fontSize: 11, color: '#4A7A78', marginTop: 5 }}>
               Tip: include your target customer, the problem you solve, and a concrete result.
             </p>
           </div>
@@ -111,16 +111,16 @@ export default function SettingsPage({ user, onUserUpdated }) {
 
         {/* Preview */}
         {form.company_name && form.product_description && (
-          <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
+          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-              <Zap size={12} color="#f59e0b" />
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email preview context</span>
+              <Zap size={12} color="#00D4C8" />
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email preview context</span>
             </div>
-            <p style={{ fontSize: 12, color: '#71717a', margin: 0, lineHeight: 1.6 }}>
-              Emails will be written as <strong style={{ color: '#a1a1aa' }}>{form.name || '{{senderName}}'}</strong>
-              {form.sender_title && <>, <strong style={{ color: '#a1a1aa' }}>{form.sender_title}</strong></>}
-              {' '}at <strong style={{ color: '#a1a1aa' }}>{form.company_name}</strong>, pitching:
-              <em style={{ color: '#a1a1aa' }}> "{form.product_description.slice(0, 120)}{form.product_description.length > 120 ? '…' : ''}"</em>
+            <p style={{ fontSize: 12, color: '#4A7A78', margin: 0, lineHeight: 1.6 }}>
+              Emails will be written as <strong style={{ color: '#8ABAB8' }}>{form.name || '{{senderName}}'}</strong>
+              {form.sender_title && <>, <strong style={{ color: '#8ABAB8' }}>{form.sender_title}</strong></>}
+              {' '}at <strong style={{ color: '#8ABAB8' }}>{form.company_name}</strong>, pitching:
+              <em style={{ color: '#8ABAB8' }}> "{form.product_description.slice(0, 120)}{form.product_description.length > 120 ? '…' : ''}"</em>
             </p>
           </div>
         )}
@@ -133,8 +133,8 @@ export default function SettingsPage({ user, onUserUpdated }) {
         )}
 
         <button type="submit" disabled={saving} style={{
-          background: saving ? '#27272a' : 'linear-gradient(135deg, #f59e0b, #b45309)',
-          color: saving ? '#52525b' : '#09090b',
+          background: saving ? '#1E3030' : 'linear-gradient(135deg, #00D4C8, #00B8AD)',
+          color: saving ? '#4A7A78' : '#0A0F0F',
           border: 'none', borderRadius: 10, padding: '10px 24px',
           fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
           display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s',
@@ -156,7 +156,7 @@ function Section({ title, icon, children }) {
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid #1c1c1e' }}>
         {icon}
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#f4f4f5' }}>{title}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4' }}>{title}</span>
       </div>
       {children}
     </div>
@@ -164,14 +164,14 @@ function Section({ title, icon, children }) {
 }
 
 const inputStyle = {
-  width: '100%', background: '#18181b', border: '1px solid #27272a',
-  borderRadius: 8, padding: '9px 12px', color: '#f4f4f5',
+  width: '100%', background: '#111A1A', border: '1px solid #1E3030',
+  borderRadius: 8, padding: '9px 12px', color: '#E8F5F4',
   fontSize: 13, outline: 'none', transition: 'border-color 0.15s',
   fontFamily: 'inherit',
 };
 
 const labelStyle = {
-  fontSize: 11, fontWeight: 600, color: '#52525b',
+  fontSize: 11, fontWeight: 600, color: '#4A7A78',
   letterSpacing: '0.5px', textTransform: 'uppercase',
   display: 'block', marginBottom: 6,
 };
@@ -184,8 +184,8 @@ function Field({ label, placeholder, value, onChange, required }) {
         value={value} onChange={e => onChange(e.target.value)}
         placeholder={placeholder} required={required}
         style={inputStyle}
-        onFocus={e => e.target.style.borderColor = '#f59e0b'}
-        onBlur={e  => e.target.style.borderColor = '#27272a'}
+        onFocus={e => e.target.style.borderColor = '#00D4C8'}
+        onBlur={e  => e.target.style.borderColor = '#1E3030'}
       />
     </div>
   );

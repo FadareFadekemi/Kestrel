@@ -173,15 +173,15 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
         {profileIncomplete && (
           <div style={{
             margin: '12px 20px 0', display: 'flex', gap: 10, alignItems: 'flex-start',
-            background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)',
+            background: 'rgba(0,212,200,0.07)', border: '1px solid rgba(0,212,200,0.2)',
             borderRadius: 8, padding: '10px 14px',
           }}>
-            <AlertCircle size={13} color="#f59e0b" style={{ marginTop: 1, flexShrink: 0 }} />
-            <p style={{ fontSize: 12, color: '#a16207', margin: 0, lineHeight: 1.5 }}>
+            <AlertCircle size={13} color="#00D4C8" style={{ marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: '#00B8AD', margin: 0, lineHeight: 1.5 }}>
               Your sender profile is incomplete — emails will use generic placeholders.{' '}
               <button
                 onClick={() => onGoToSettings?.()}
-                style={{ color: '#f59e0b', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: 0 }}
+                style={{ color: '#00D4C8', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: 0 }}
               >
                 Complete it in Settings →
               </button>
@@ -200,7 +200,7 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
         </div>
 
         {/* Output tabs */}
-        <div style={{ borderBottom: '1px solid #27272a', paddingLeft: isMobile ? 8 : 20, flexShrink: 0, display: 'flex', gap: 2, overflowX: 'auto' }}>
+        <div style={{ borderBottom: '1px solid #1E3030', paddingLeft: isMobile ? 8 : 20, flexShrink: 0, display: 'flex', gap: 2, overflowX: 'auto' }}>
           {TABS.map(tab => {
             const hasContent = (
               (tab === 'Research'    && (research || agentStates.research === 'running')) ||
@@ -215,8 +215,8 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
                 onClick={() => setActiveTab(tab)}
                 style={{
                   fontSize: 12, fontWeight: activeTab === tab ? 600 : 400,
-                  color: activeTab === tab ? '#f4f4f5' : hasContent ? '#71717a' : '#3f3f46',
-                  borderBottom: activeTab === tab ? '2px solid #f59e0b' : '2px solid transparent',
+                  color: activeTab === tab ? '#E8F5F4' : hasContent ? '#4A7A78' : '#264040',
+                  borderBottom: activeTab === tab ? '2px solid #00D4C8' : '2px solid transparent',
                   background: 'transparent', border: 'none', borderRadius: 0,
                   padding: isMobile ? '10px 10px' : '10px 14px',
                   cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
@@ -224,7 +224,7 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
               >
                 {tab}
                 {hasContent && activeTab !== tab && (
-                  <span style={{ marginLeft: 5, width: 5, height: 5, background: '#f59e0b', borderRadius: '50%', display: 'inline-block', verticalAlign: 'middle' }} />
+                  <span style={{ marginLeft: 5, width: 5, height: 5, background: '#00D4C8', borderRadius: '50%', display: 'inline-block', verticalAlign: 'middle' }} />
                 )}
               </button>
             );
@@ -279,7 +279,7 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
 
       {/* Right panel — hidden on mobile */}
       {!isMobile && (
-        <div style={{ width: 240, borderLeft: '1px solid #27272a', overflowY: 'auto', flexShrink: 0 }}>
+        <div style={{ width: 240, borderLeft: '1px solid #1E3030', overflowY: 'auto', flexShrink: 0 }}>
           <RightPanel profile={profile} />
         </div>
       )}

@@ -17,24 +17,24 @@ export default function AgentInputForm({ onSubmit, isRunning }) {
 
   return (
     <div style={{
-      background: '#18181b', border: '1px solid #27272a',
+      background: '#111A1A', border: '1px solid #1E3030',
       borderRadius: 12, padding: 20, marginBottom: 24,
     }}>
-      <p style={{ fontSize: 13, fontWeight: 600, color: '#f4f4f5', margin: '0 0 12px' }}>
+      <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 12px' }}>
         New Lead Research
       </p>
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
         <div style={{ flex: 1, position: 'relative' }}>
-          <Globe size={14} color="#52525b" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <Globe size={14} color="#4A7A78" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input
             value={input}
             onChange={e => { setInput(e.target.value); setError(''); }}
             placeholder="Company name, website URL, or LinkedIn URL..."
             disabled={isRunning}
             style={{
-              width: '100%', background: '#09090b', border: `1px solid ${error ? '#ef4444' : '#3f3f46'}`,
+              width: '100%', background: '#0A0F0F', border: `1px solid ${error ? '#ef4444' : '#264040'}`,
               borderRadius: 8, padding: '9px 12px 9px 34px',
-              color: '#f4f4f5', fontSize: 13, outline: 'none',
+              color: '#E8F5F4', fontSize: 13, outline: 'none',
               opacity: isRunning ? 0.6 : 1,
             }}
           />
@@ -43,8 +43,8 @@ export default function AgentInputForm({ onSubmit, isRunning }) {
           type="submit"
           disabled={isRunning || !input.trim()}
           style={{
-            background: isRunning ? '#27272a' : '#f59e0b',
-            color: isRunning ? '#52525b' : '#09090b',
+            background: isRunning ? '#1E3030' : '#00D4C8',
+            color: isRunning ? '#4A7A78' : '#0A0F0F',
             border: 'none', borderRadius: 8, padding: '9px 18px',
             fontSize: 13, fontWeight: 600, cursor: isRunning ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 6,
@@ -71,12 +71,12 @@ export default function AgentInputForm({ onSubmit, isRunning }) {
       )}
 
       <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: '#3f3f46' }}>Try:</span>
+        <span style={{ fontSize: 11, color: '#264040' }}>Try:</span>
         {suggestions.map(s => (
           <button key={s} onClick={() => setInput(s)} disabled={isRunning}
             style={{
-              fontSize: 11, color: '#52525b', background: '#27272a',
-              border: '1px solid #3f3f46', borderRadius: 4, padding: '2px 8px',
+              fontSize: 11, color: '#4A7A78', background: '#1E3030',
+              border: '1px solid #264040', borderRadius: 4, padding: '2px 8px',
               cursor: 'pointer',
             }}>
             {s}

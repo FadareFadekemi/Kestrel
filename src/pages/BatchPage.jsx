@@ -130,8 +130,8 @@ export default function BatchPage({ onLeadSaved }) {
   return (
     <div style={{ padding: '28px 32px', overflowY: 'auto', height: '100%' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fafafa', margin: 0 }}>Batch Mode</h1>
-        <p style={{ fontSize: 13, color: '#52525b', marginTop: 4 }}>Process multiple leads simultaneously</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Batch Mode</h1>
+        <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>Process multiple leads simultaneously</p>
       </div>
 
       {/* Upload zone */}
@@ -141,66 +141,66 @@ export default function BatchPage({ onLeadSaved }) {
           onDrop={handleDrop}
           onClick={() => fileRef.current?.click()}
           style={{
-            border: '2px dashed #3f3f46', borderRadius: 14, padding: '64px 32px',
+            border: '2px dashed #264040', borderRadius: 14, padding: '64px 32px',
             textAlign: 'center', cursor: 'pointer', marginBottom: 24,
-            background: 'rgba(245,158,11,0.02)', transition: 'all 0.15s',
+            background: 'rgba(0,212,200,0.02)', transition: 'all 0.15s',
           }}
         >
-          <div style={{ width: 52, height: 52, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 12, margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Upload size={22} color="#f59e0b" />
+          <div style={{ width: 52, height: 52, background: 'rgba(0,212,200,0.08)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 12, margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Upload size={22} color="#00D4C8" />
           </div>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#f4f4f5', margin: '0 0 6px' }}>Drop your CSV here</p>
-          <p style={{ fontSize: 13, color: '#52525b', margin: 0 }}>or click to browse. Columns: <code style={{ background: '#27272a', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>company, url</code></p>
+          <p style={{ fontSize: 16, fontWeight: 600, color: '#E8F5F4', margin: '0 0 6px' }}>Drop your CSV here</p>
+          <p style={{ fontSize: 13, color: '#4A7A78', margin: 0 }}>or click to browse. Columns: <code style={{ background: '#1E3030', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>company, url</code></p>
           <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} style={{ display: 'none' }} />
         </div>
       ) : (
         <>
           {/* Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 1, background: '#18181b', border: '1px solid #27272a', borderRadius: 8, padding: '10px 14px', display: 'flex', align: 'center', gap: 10 }}>
-              <FileText size={14} color="#f59e0b" />
-              <span style={{ fontSize: 13, color: '#f4f4f5' }}>{rows.length} leads loaded</span>
+            <div style={{ flex: 1, background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '10px 14px', display: 'flex', align: 'center', gap: 10 }}>
+              <FileText size={14} color="#00D4C8" />
+              <span style={{ fontSize: 13, color: '#E8F5F4' }}>{rows.length} leads loaded</span>
             </div>
             {running && (
-              <div style={{ display: 'flex', align: 'center', gap: 8, background: '#18181b', border: '1px solid #27272a', borderRadius: 8, padding: '10px 14px' }}>
-                <span style={{ fontSize: 13, color: '#71717a' }}>{totalDone}/{rows.length} processed</span>
+              <div style={{ display: 'flex', align: 'center', gap: 8, background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '10px 14px' }}>
+                <span style={{ fontSize: 13, color: '#4A7A78' }}>{totalDone}/{rows.length} processed</span>
               </div>
             )}
             <button onClick={() => { setRows([]); setResults([]); setProgress({}); }} disabled={running}
-              style={{ background: '#27272a', border: '1px solid #3f3f46', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: '#71717a', cursor: running ? 'not-allowed' : 'pointer' }}>
+              style={{ background: '#1E3030', border: '1px solid #264040', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: '#4A7A78', cursor: running ? 'not-allowed' : 'pointer' }}>
               Clear
             </button>
             {results.filter(r => r?.lead).length > 0 && (
-              <button onClick={() => exportCSV(results)} style={{ background: '#27272a', border: '1px solid #3f3f46', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: '#f4f4f5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={() => exportCSV(results)} style={{ background: '#1E3030', border: '1px solid #264040', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: '#E8F5F4', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Download size={13} /> Export CSV
               </button>
             )}
             <button onClick={runBatch} disabled={running}
-              style={{ background: running ? '#27272a' : '#f59e0b', color: running ? '#52525b' : '#09090b', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 600, cursor: running ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ background: running ? '#1E3030' : '#00D4C8', color: running ? '#4A7A78' : '#0A0F0F', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 600, cursor: running ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
               {running ? <><Loader size={13} className="animate-spin-icon" /> Running...</> : 'Run Pipeline'}
             </button>
           </div>
 
           {/* Progress bars */}
           {running && (
-            <div style={{ marginBottom: 20, background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: '12px 16px' }}>
+            <div style={{ marginBottom: 20, background: '#111A1A', border: '1px solid #1E3030', borderRadius: 10, padding: '12px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: '#71717a' }}>Pipeline Progress</span>
-                <span style={{ fontSize: 12, color: '#f59e0b' }}>{totalDone}/{rows.length}</span>
+                <span style={{ fontSize: 12, color: '#4A7A78' }}>Pipeline Progress</span>
+                <span style={{ fontSize: 12, color: '#00D4C8' }}>{totalDone}/{rows.length}</span>
               </div>
-              <div style={{ height: 4, background: '#27272a', borderRadius: 2 }}>
-                <div style={{ height: '100%', width: `${(totalDone / rows.length) * 100}%`, background: '#f59e0b', borderRadius: 2, transition: 'width 0.3s' }} />
+              <div style={{ height: 4, background: '#1E3030', borderRadius: 2 }}>
+                <div style={{ height: '100%', width: `${(totalDone / rows.length) * 100}%`, background: '#00D4C8', borderRadius: 2, transition: 'width 0.3s' }} />
               </div>
             </div>
           )}
 
           {/* Table */}
-          <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #27272a' }}>
+                <tr style={{ borderBottom: '1px solid #1E3030' }}>
                   {['#', 'Company', 'Score', 'Industry', 'Tech Stack', 'Email', 'Status'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 600, color: '#52525b', letterSpacing: '0.5px' }}>{h}</th>
+                    <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: 11, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.5px' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -211,31 +211,31 @@ export default function BatchPage({ onLeadSaved }) {
                   const lead = res?.lead;
                   return (
                     <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid #1c1c1e' : 'none' }}>
-                      <td style={{ padding: '10px 16px', fontSize: 12, color: '#52525b' }}>{i + 1}</td>
+                      <td style={{ padding: '10px 16px', fontSize: 12, color: '#4A7A78' }}>{i + 1}</td>
                       <td style={{ padding: '10px 16px' }}>
                         <div>
-                          <p style={{ fontSize: 13, fontWeight: 500, color: '#f4f4f5', margin: 0 }}>{lead?.company || row.company || row.url}</p>
-                          {(row.url && !lead) && <p style={{ fontSize: 10, color: '#52525b', margin: 0 }}>{row.url}</p>}
+                          <p style={{ fontSize: 13, fontWeight: 500, color: '#E8F5F4', margin: 0 }}>{lead?.company || row.company || row.url}</p>
+                          {(row.url && !lead) && <p style={{ fontSize: 10, color: '#4A7A78', margin: 0 }}>{row.url}</p>}
                         </div>
                       </td>
                       <td style={{ padding: '10px 16px' }}>
-                        {lead ? <ScoreRing score={lead.score} size={36} /> : <span style={{ fontSize: 12, color: '#3f3f46' }}>—</span>}
+                        {lead ? <ScoreRing score={lead.score} size={36} /> : <span style={{ fontSize: 12, color: '#264040' }}>—</span>}
                       </td>
-                      <td style={{ padding: '10px 16px', fontSize: 12, color: '#71717a' }}>{lead?.industry || '—'}</td>
+                      <td style={{ padding: '10px 16px', fontSize: 12, color: '#4A7A78' }}>{lead?.industry || '—'}</td>
                       <td style={{ padding: '10px 16px' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                           {lead?.techStack?.slice(0, 3).map(t => (
-                            <span key={t} style={{ fontSize: 10, color: '#a78bfa', background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 4, padding: '1px 5px' }}>{t}</span>
-                          )) || <span style={{ fontSize: 12, color: '#3f3f46' }}>—</span>}
+                            <span key={t} style={{ fontSize: 10, color: '#00D4C8', background: 'rgba(0,212,200,0.08)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 4, padding: '1px 5px' }}>{t}</span>
+                          )) || <span style={{ fontSize: 12, color: '#264040' }}>—</span>}
                         </div>
                       </td>
-                      <td style={{ padding: '10px 16px', fontSize: 12, color: '#71717a', maxWidth: 200 }}>
+                      <td style={{ padding: '10px 16px', fontSize: 12, color: '#4A7A78', maxWidth: 200 }}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                           {lead?.emails?.[0]?.subject || '—'}
                         </span>
                       </td>
                       <td style={{ padding: '10px 16px' }}>
-                        {!p && <span style={{ fontSize: 11, color: '#3f3f46' }}>Pending</span>}
+                        {!p && <span style={{ fontSize: 11, color: '#264040' }}>Pending</span>}
                         {p?.status === 'running' && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Loader size={11} color="#60a5fa" className="animate-spin-icon" />
@@ -244,7 +244,7 @@ export default function BatchPage({ onLeadSaved }) {
                         )}
                         {p?.status === 'done'  && <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle size={13} color="#34d399" /><span style={{ fontSize: 11, color: '#34d399' }}>Done</span></div>}
                         {p?.status === 'error' && <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><XCircle    size={13} color="#ef4444" /><span style={{ fontSize: 11, color: '#ef4444', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Error</span></div>}
-                        {p?.status === 'pending' && <span style={{ fontSize: 11, color: '#52525b' }}>Queued</span>}
+                        {p?.status === 'pending' && <span style={{ fontSize: 11, color: '#4A7A78' }}>Queued</span>}
                       </td>
                     </tr>
                   );

@@ -10,6 +10,13 @@ import AuthPage from './pages/AuthPage';
 import SettingsPage from './pages/SettingsPage';
 import ModeSelectPage from './pages/ModeSelectPage';
 import JobSeekerSetupPage from './pages/JobSeekerSetupPage';
+import JobSeekerDashboard from './pages/jobseeker/JobSeekerDashboard';
+import CVOptimiserPage from './pages/jobseeker/CVOptimiserPage';
+import JobMatchesPage from './pages/jobseeker/JobMatchesPage';
+import ApplicationsPage from './pages/jobseeker/ApplicationsPage';
+import ScamDetectorPage from './pages/jobseeker/ScamDetectorPage';
+import OutreachAssistantPage from './pages/jobseeker/OutreachAssistantPage';
+import LandingPage from './pages/LandingPage';
 import { isLoggedIn, logout, fetchMe } from './services/authApi';
 import { fetchLeads, saveLead, updateLead as updateLeadApi } from './services/leadsApi';
 import './index.css';
@@ -21,9 +28,7 @@ function getStoredUserType() {
   try {
     const v = localStorage.getItem(USER_TYPE_KEY);
     return VALID_TYPES.includes(v) ? v : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function storeUserType(type) {
@@ -36,21 +41,21 @@ function clearStoredUserType() {
 }
 
 export default function App() {
-  const [activePage,   setActivePage]   = useState('Dashboard');
-  const [leads,        setLeads]        = useState([]);
-  const [user,         setUser]         = useState(null);
-  const [authChecked,  setAuthChecked]  = useState(false);
-  const [userType,     setUserType]     = useState(null);   // 'company' | 'jobseeker'
-  const [appStep,      setAppStep]      = useState('app'); // 'mode-select' | 'jobseeker-setup' | 'app'
+  const [activePage,  setActivePage]  = useState('Dashboard');
+  const [leads,       setLeads]       = useState([]);
+  const [user,        setUser]        = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userType,    setUserType]    = useState(null);
+  const [appStep,       setAppStep]       = useState('app'); // 'mode-select' | 'jobseeker-setup' | 'app'
+  const [viewingLanding, setViewingLanding] = useState(() => !isLoggedIn());
 
-  // ── Restore session on mount ────────────────────────────────────────────────
+  // ── Restore session ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isLoggedIn()) { setAuthChecked(true); return; }
     fetchMe()
       .then(u => {
         if (u) {
           setUser(u);
-          // Existing session — use stored type; default to 'company' for pre-existing accounts
           const stored = getStoredUserType() || 'company';
           storeUserType(stored);
           setUserType(stored);
@@ -62,21 +67,16 @@ export default function App() {
   }, []);
 
   async function loadLeads() {
-    try {
-      const data = await fetchLeads();
-      setLeads(data);
-    } catch { /* backend may not be running */ }
+    try { setLeads(await fetchLeads()); } catch { /* backend may not be running */ }
   }
 
-  // ── Auth handlers ───────────────────────────────────────────────────────────
+  // ── Auth handlers ────────────────────────────────────────────────────────────
   const handleAuth = useCallback((u, isNewUser) => {
     setUser(u);
     const stored = getStoredUserType();
     if (isNewUser && !stored) {
-      // New signup with no stored preference → show mode selection
       setAppStep('mode-select');
     } else {
-      // Login, or returning user — honour stored type or default to company
       const type = stored || 'company';
       storeUserType(type);
       setUserType(type);
@@ -99,7 +99,6 @@ export default function App() {
 
   const handleJobSeekerSetupComplete = useCallback(() => {
     setAppStep('app');
-    loadLeads();
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -112,7 +111,7 @@ export default function App() {
     setAppStep('app');
   }, []);
 
-  // ── Lead persistence ────────────────────────────────────────────────────────
+  // ── Lead persistence ─────────────────────────────────────────────────────────
   const handleLeadSaved = useCallback(async (lead) => {
     try {
       const saved = await saveLead(lead);
@@ -138,13 +137,31 @@ export default function App() {
     }
   }, []);
 
-  // ── Render guards ────────────────────────────────────────────────────────────
-  if (!authChecked) return null;
-  if (!user) return <AuthPage onAuth={handleAuth} />;
-  if (appStep === 'mode-select') return <ModeSelectPage onSelect={handleModeSelect} />;
-  if (appStep === 'jobseeker-setup') return <JobSeekerSetupPage user={user} onComplete={handleJobSeekerSetupComplete} />;
+  // ── Render guards ─────────────────────────────────────────────────────────────
+  if (!authChecked)                   return null;
+  if (!user && viewingLanding)        return <LandingPage onGetStarted={() => setViewingLanding(false)} />;
+  if (!user)                          return <AuthPage onAuth={handleAuth} />;
+  if (appStep === 'mode-select')      return <ModeSelectPage onSelect={handleModeSelect} />;
+  if (appStep === 'jobseeker-setup')  return <JobSeekerSetupPage user={user} onComplete={handleJobSeekerSetupComplete} />;
+
+  const isJobSeeker = userType === 'jobseeker';
 
   const renderPage = () => {
+    // ── Job seeker pages ──────────────────────────────────────────────────────
+    if (isJobSeeker) {
+      switch (activePage) {
+        case 'Dashboard':     return <JobSeekerDashboard user={user} setActivePage={setActivePage} />;
+        case 'CV Optimiser':  return <CVOptimiserPage />;
+        case 'Job Matches':   return <JobMatchesPage setActivePage={setActivePage} />;
+        case 'Applications':  return <ApplicationsPage setActivePage={setActivePage} />;
+        case 'Scam Detector': return <ScamDetectorPage />;
+        case 'Outreach':      return <OutreachAssistantPage />;
+        case 'Agent':         return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => setActivePage('Settings')} />;
+        case 'Settings':      return <SettingsPage user={user} onUserUpdated={setUser} />;
+        default:              return <JobSeekerDashboard user={user} setActivePage={setActivePage} />;
+      }
+    }
+    // ── Company pages (unchanged) ─────────────────────────────────────────────
     switch (activePage) {
       case 'Dashboard':  return <Dashboard leads={leads} setActivePage={setActivePage} />;
       case 'Agent':      return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => setActivePage('Settings')} />;
@@ -156,8 +173,11 @@ export default function App() {
     }
   };
 
+  const floatingTarget = isJobSeeker ? 'Outreach' : 'Agent';
+  const floatingLabel  = isJobSeeker ? 'Outreach Assistant' : 'Research a Lead';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#0A0F0F', display: 'flex', flexDirection: 'column' }}>
       <Navbar
         activePage={activePage}
         setActivePage={setActivePage}
@@ -167,19 +187,19 @@ export default function App() {
         onSettings={() => setActivePage('Settings')}
       />
 
-      {activePage !== 'Agent' && (
+      {activePage !== floatingTarget && (
         <button
-          onClick={() => setActivePage('Agent')}
+          onClick={() => setActivePage(floatingTarget)}
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 40,
-            background: 'linear-gradient(135deg, #f59e0b, #b45309)',
-            color: '#09090b', border: 'none', borderRadius: 12,
+            background: 'linear-gradient(135deg, #00D4C8, #00B8AD)',
+            color: '#0A0F0F', border: 'none', borderRadius: 12,
             padding: '12px 20px', fontSize: 13, fontWeight: 700,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 8px 28px rgba(245,158,11,0.35)',
+            boxShadow: '0 8px 28px rgba(0,212,200,0.35)',
           }}
         >
-          <Zap size={14} fill="currentColor" /> Research a Lead
+          <Zap size={14} fill="currentColor" /> {floatingLabel}
         </button>
       )}
 

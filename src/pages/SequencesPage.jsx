@@ -57,10 +57,10 @@ export default function SequencesPage({ leads }) {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* List */}
-      <div style={{ width: 300, borderRight: '1px solid #27272a', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fafafa', margin: 0 }}>Sequences</h2>
-          <button onClick={createSequence} style={{ background: '#f59e0b', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#09090b' }}>
+      <div style={{ width: 300, borderRight: '1px solid #1E3030', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #1E3030', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Sequences</h2>
+          <button onClick={createSequence} style={{ background: '#00D4C8', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#0A0F0F' }}>
             <Plus size={13} /> New
           </button>
         </div>
@@ -74,14 +74,14 @@ export default function SequencesPage({ leads }) {
                 onClick={() => { setSelected(seq); setActiveStep(0); }}
                 style={{
                   padding: '12px 16px', borderBottom: '1px solid #1c1c1e', cursor: 'pointer',
-                  background: selected?.id === seq.id ? 'rgba(245,158,11,0.05)' : 'transparent',
-                  borderLeft: selected?.id === seq.id ? '2px solid #f59e0b' : '2px solid transparent',
+                  background: selected?.id === seq.id ? 'rgba(0,212,200,0.05)' : 'transparent',
+                  borderLeft: selected?.id === seq.id ? '2px solid #00D4C8' : '2px solid transparent',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#f4f4f5', margin: '0 0 3px' }}>{seq.name}</p>
-                    <p style={{ fontSize: 11, color: '#52525b', margin: 0 }}>{seq.steps?.length || 3} steps · {seq.leadName || 'Template'}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 3px' }}>{seq.name}</p>
+                    <p style={{ fontSize: 11, color: '#4A7A78', margin: 0 }}>{seq.steps?.length || 3} steps · {seq.leadName || 'Template'}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
                     <IconBtn icon={<Copy size={11} />} onClick={() => duplicateSequence(seq)} />
@@ -98,7 +98,7 @@ export default function SequencesPage({ leads }) {
       {selected ? (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {/* Name */}
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #27272a', flexShrink: 0 }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid #1E3030', flexShrink: 0 }}>
             <input
               value={selected.name}
               onChange={e => {
@@ -106,9 +106,9 @@ export default function SequencesPage({ leads }) {
                 setSelected(updated);
                 setSequences(prev => prev.map(s => s.id === updated.id ? updated : s));
               }}
-              style={{ fontSize: 18, fontWeight: 700, color: '#fafafa', background: 'transparent', border: 'none', outline: 'none', width: '100%' }}
+              style={{ fontSize: 18, fontWeight: 700, color: '#E8F5F4', background: 'transparent', border: 'none', outline: 'none', width: '100%' }}
             />
-            {selected.leadName && <p style={{ fontSize: 12, color: '#52525b', margin: '2px 0 0' }}>Assigned to: {selected.leadName}</p>}
+            {selected.leadName && <p style={{ fontSize: 12, color: '#4A7A78', margin: '2px 0 0' }}>Assigned to: {selected.leadName}</p>}
           </div>
 
           {/* Steps */}
@@ -116,13 +116,13 @@ export default function SequencesPage({ leads }) {
             <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
               {selected.steps.map((step, i) => (
                 <button key={i} onClick={() => setActiveStep(i)} style={{
-                  flex: 1, background: activeStep === i ? '#27272a' : 'transparent',
-                  border: `1px solid ${activeStep === i ? '#3f3f46' : '#27272a'}`,
+                  flex: 1, background: activeStep === i ? '#1E3030' : 'transparent',
+                  border: `1px solid ${activeStep === i ? '#264040' : '#1E3030'}`,
                   borderRadius: 8, padding: '10px 6px', cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: activeStep === i ? '#f59e0b' : '#52525b' }}>Day {step.day}</span>
-                  <span style={{ fontSize: 10, color: '#3f3f46' }}>{step.note}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: activeStep === i ? '#00D4C8' : '#4A7A78' }}>Day {step.day}</span>
+                  <span style={{ fontSize: 10, color: '#264040' }}>{step.note}</span>
                 </button>
               ))}
             </div>
@@ -130,33 +130,33 @@ export default function SequencesPage({ leads }) {
             {selected.steps[activeStep] && (
               <div style={{ animation: 'fadeInUp 0.2s ease' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  <label style={{ fontSize: 11, color: '#52525b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Day</label>
+                  <label style={{ fontSize: 11, color: '#4A7A78', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Day</label>
                   <input type="number" value={selected.steps[activeStep].day}
                     onChange={e => updateStep(activeStep, 'day', parseInt(e.target.value))}
-                    style={{ width: 60, background: '#27272a', border: '1px solid #3f3f46', borderRadius: 6, padding: '5px 8px', color: '#f4f4f5', fontSize: 12, outline: 'none' }} />
-                  <label style={{ fontSize: 11, color: '#52525b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tone</label>
+                    style={{ width: 60, background: '#1E3030', border: '1px solid #264040', borderRadius: 6, padding: '5px 8px', color: '#E8F5F4', fontSize: 12, outline: 'none' }} />
+                  <label style={{ fontSize: 11, color: '#4A7A78', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tone</label>
                   <select value={selected.steps[activeStep].tone}
                     onChange={e => updateStep(activeStep, 'tone', e.target.value)}
-                    style={{ background: '#27272a', border: '1px solid #3f3f46', borderRadius: 6, padding: '5px 10px', color: '#d4d4d8', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                    style={{ background: '#1E3030', border: '1px solid #264040', borderRadius: 6, padding: '5px 10px', color: '#C5E8E6', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
                     {TONES.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#52525b', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Subject</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Subject</label>
                   <input value={selected.steps[activeStep].subject}
                     onChange={e => updateStep(activeStep, 'subject', e.target.value)}
                     placeholder="Email subject line..."
-                    style={{ width: '100%', background: '#18181b', border: '1px solid #27272a', borderRadius: 8, padding: '8px 12px', color: '#f4f4f5', fontSize: 13, outline: 'none' }} />
+                    style={{ width: '100%', background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '8px 12px', color: '#E8F5F4', fontSize: 13, outline: 'none' }} />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#52525b', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Body</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Body</label>
                   <textarea value={selected.steps[activeStep].body}
                     onChange={e => updateStep(activeStep, 'body', e.target.value)}
                     placeholder="Email body... Use {{firstName}} and {{senderName}} as placeholders."
                     rows={14}
-                    style={{ width: '100%', background: '#18181b', border: '1px solid #27272a', borderRadius: 8, padding: '12px', color: '#d4d4d8', fontSize: 13, lineHeight: 1.7, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
+                    style={{ width: '100%', background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '12px', color: '#C5E8E6', fontSize: 13, lineHeight: 1.7, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }} />
                 </div>
               </div>
             )}
@@ -173,7 +173,7 @@ export default function SequencesPage({ leads }) {
 
 function IconBtn({ icon, onClick, danger }) {
   return (
-    <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: danger ? '#ef4444' : '#52525b', padding: 4, display: 'flex', borderRadius: 4 }}>
+    <button onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: danger ? '#ef4444' : '#4A7A78', padding: 4, display: 'flex', borderRadius: 4 }}>
       {icon}
     </button>
   );
