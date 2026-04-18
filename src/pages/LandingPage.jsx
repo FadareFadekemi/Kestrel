@@ -4,7 +4,7 @@ import {
   Zap, Search, Mail, FileText, Briefcase, Shield, Check,
   ChevronRight, Star, TrendingUp, Target, Users, BarChart2,
   AlertTriangle, CheckCircle, XCircle, ArrowRight, Building2,
-  Loader, Wand2, Globe,
+  Loader, Wand2, Globe, Menu, X,
 } from 'lucide-react';
 
 // ── Scroll reveal hook ───────────────────────────────────────────────────────
@@ -428,51 +428,84 @@ export default function LandingPage({ onGetStarted }) {
       {/* ── Navbar ───────────────────────────────────────────────────────────── */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
-        background: scrolled ? 'rgba(10,15,15,0.92)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(16px)' : 'none',
+        background: scrolled || mobileMenu ? 'rgba(10,15,15,0.97)' : 'transparent',
+        backdropFilter: 'blur(16px)',
         borderBottom: scrolled ? `1px solid ${BRD}` : '1px solid transparent',
         transition: 'all 0.3s ease',
       }}>
-        <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 24px', height: 64,
+        <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 20px', height: 64,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8,
               background: `linear-gradient(135deg, ${A}, #00B8AD)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 0 14px rgba(0,212,200,0.4)' }}>
               <Zap size={15} color={BG} fill={BG} />
             </div>
-            <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.5px', color: '#E8F5F4' }}>techcori</span>
+            <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.5px', color: A,
+              fontFamily: "'Clash Display', sans-serif" }}>techcori</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: A, background: AD,
               border: `1px solid ${AB}`, borderRadius: 4, padding: '2px 6px', letterSpacing: '0.5px' }}>BETA</span>
           </div>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex" style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          {/* Desktop nav links — hidden on mobile */}
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+              {[['Features', 'features'], ['How it Works', 'how'], ['Pricing', 'pricing']].map(([l, id]) => (
+                <button key={id} onClick={() => scrollTo(id)}
+                  style={{ background: 'none', border: 'none', color: '#4A7A78', fontSize: 14,
+                    cursor: 'pointer', transition: 'color 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#E8F5F4')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#4A7A78')}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Right side */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {!isMobile && (
+              <button onClick={onGetStarted}
+                style={{ background: 'none', border: 'none', color: '#8ABAB8', fontSize: 13, cursor: 'pointer' }}>
+                Sign In
+              </button>
+            )}
+            <GradBtn onClick={onGetStarted} style={{ padding: isMobile ? '8px 14px' : '9px 18px', fontSize: 13 }}>
+              {isMobile ? 'Join' : 'Get Started →'}
+            </GradBtn>
+            {isMobile && (
+              <button onClick={() => setMobileMenu(m => !m)}
+                style={{ background: 'none', border: `1px solid ${BRD}`, borderRadius: 8,
+                  color: '#E8F5F4', cursor: 'pointer', padding: '6px', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center' }}>
+                {mobileMenu ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile dropdown menu */}
+        {isMobile && mobileMenu && (
+          <div style={{ borderTop: `1px solid ${BRD}`, padding: '12px 20px 20px',
+            display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[['Features', 'features'], ['How it Works', 'how'], ['Pricing', 'pricing']].map(([l, id]) => (
               <button key={id} onClick={() => scrollTo(id)}
-                style={{ background: 'none', border: 'none', color: '#4A7A78', fontSize: 14,
-                  cursor: 'pointer', transition: 'color 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#E8F5F4')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#4A7A78')}>
+                style={{ background: 'none', border: 'none', color: '#E8F5F4', fontSize: 15,
+                  cursor: 'pointer', textAlign: 'left', padding: '10px 0',
+                  borderBottom: `1px solid ${BRD}` }}>
                 {l}
               </button>
             ))}
-          </div>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={onGetStarted}
-              style={{ background: 'none', border: 'none', color: '#8ABAB8', fontSize: 13, cursor: 'pointer' }}>
+            <button onClick={() => { setMobileMenu(false); onGetStarted(); }}
+              style={{ background: 'none', border: 'none', color: '#4A7A78', fontSize: 15,
+                cursor: 'pointer', textAlign: 'left', padding: '10px 0' }}>
               Sign In
             </button>
-            <GradBtn onClick={onGetStarted} style={{ padding: '9px 18px', fontSize: 13 }}>
-              Get Started →
-            </GradBtn>
           </div>
-        </div>
+        )}
       </nav>
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
@@ -502,16 +535,16 @@ export default function LandingPage({ onGetStarted }) {
                 client, and your next job
               </span>
             </h1>
-            <p style={{ fontSize: 18, color: '#4A7A78', lineHeight: 1.7, margin: '0 0 36px', maxWidth: 440 }}>
-              techcori gives companies sharp lead intelligence and job seekers a competitive edge —{' '}
+            <p style={{ fontSize: isMobile ? 16 : 18, color: '#4A7A78', lineHeight: 1.7, margin: '0 0 32px', maxWidth: 440 }}>
+              techcori gives companies sharp lead intelligence and job seekers a competitive edge,{' '}
               <span style={{ color: '#8ABAB8' }}>powered by the same AI engine.</span>
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <GradBtn onClick={onGetStarted}>
-                I'm a Company →
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12 }}>
+              <GradBtn onClick={onGetStarted} style={isMobile ? { width: '100%' } : {}}>
+                I am a Company →
               </GradBtn>
-              <OutlineBtn onClick={onGetStarted} color={A}>
-                I'm a Job Seeker →
+              <OutlineBtn onClick={onGetStarted} color={A} style={isMobile ? { width: '100%', textAlign: 'center' } : {}}>
+                I am a Job Seeker →
               </OutlineBtn>
             </div>
             <p style={{ fontSize: 12, color: '#264040', margin: '16px 0 0' }}>
@@ -902,7 +935,7 @@ export default function LandingPage({ onGetStarted }) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Zap size={13} color={BG} fill={BG} />
                 </div>
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#E8F5F4' }}>techcori</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: A, fontFamily: "'Clash Display', sans-serif" }}>techcori</span>
               </div>
               <p style={{ fontSize: 12, color: '#4A7A78', margin: 0, lineHeight: 1.6, maxWidth: 200 }}>
                 work smart, rise sharp
