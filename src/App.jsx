@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Zap } from 'lucide-react';
 import Navbar from './components/Layout/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -21,33 +21,65 @@ import { isLoggedIn, logout, fetchMe } from './services/authApi';
 import { fetchLeads, saveLead, updateLead as updateLeadApi } from './services/leadsApi';
 import './index.css';
 
-const USER_TYPE_KEY = 'kestrel_user_type';
-const VALID_TYPES   = ['company', 'jobseeker'];
+const VALID_TYPES = ['company', 'jobseeker'];
 
-function getStoredUserType() {
-  try {
-    const v = localStorage.getItem(USER_TYPE_KEY);
-    return VALID_TYPES.includes(v) ? v : null;
-  } catch { return null; }
-}
-
-function storeUserType(type) {
-  if (!VALID_TYPES.includes(type)) return;
-  try { localStorage.setItem(USER_TYPE_KEY, type); } catch { /* private mode */ }
-}
-
-function clearStoredUserType() {
-  try { localStorage.removeItem(USER_TYPE_KEY); } catch { /* private mode */ }
-}
+// User type is keyed per user ID so different accounts on the same device
+// each keep their own mode choice.
+const typeKey   = (uid) => `tc_user_type_${uid}`;
+const getType   = (uid) => { try { const v = localStorage.getItem(typeKey(uid)); return VALID_TYPES.includes(v) ? v : null; } catch { return null; } };
+const saveType  = (uid, type) => { if (!VALID_TYPES.includes(type)) return; try { localStorage.setItem(typeKey(uid), type); } catch {} };
+const clearType = (uid) => { try { localStorage.removeItem(typeKey(uid)); } catch {} };
 
 export default function App() {
-  const [activePage,  setActivePage]  = useState('Dashboard');
-  const [leads,       setLeads]       = useState([]);
-  const [user,        setUser]        = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [userType,    setUserType]    = useState(null);
-  const [appStep,       setAppStep]       = useState('app'); // 'mode-select' | 'jobseeker-setup' | 'app'
+  const [activePage,     setActivePage]     = useState('Dashboard');
+  const [leads,          setLeads]          = useState([]);
+  const [user,           setUser]           = useState(null);
+  const [authChecked,    setAuthChecked]    = useState(false);
+  const [userType,       setUserType]       = useState(null);
+  const [appStep,        setAppStep]        = useState('app');
   const [viewingLanding, setViewingLanding] = useState(() => !isLoggedIn());
+
+  const historyReady = useRef(false);
+
+  // ── History: push a state entry so swipe-back works ────────────────────────
+  const pushPage = useCallback((page) => {
+    setActivePage(page);
+    window.history.pushState({ tc: 'app', page }, '');
+  }, []);
+
+  // Listen for browser/swipe back
+  useEffect(() => {
+    const onPop = (e) => {
+      const s = e.state;
+      if (!s) {
+        // Popped back to before any history entry — show landing for guests
+        if (!isLoggedIn()) setViewingLanding(true);
+        return;
+      }
+      if (s.tc === 'landing') { setViewingLanding(true); return; }
+      if (s.tc === 'auth')    { setViewingLanding(false); return; }
+      if (s.tc === 'app' && s.page) { setActivePage(s.page); }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Seed initial history entry when the app first renders
+  useEffect(() => {
+    if (!authChecked || historyReady.current) return;
+    historyReady.current = true;
+    if (!isLoggedIn()) {
+      window.history.replaceState({ tc: 'landing' }, '');
+    } else {
+      window.history.replaceState({ tc: 'app', page: 'Dashboard' }, '');
+    }
+  }, [authChecked]);
+
+  // Push a history entry whenever the active page changes (enables swipe-back within the app)
+  useEffect(() => {
+    if (!historyReady.current || !user) return;
+    window.history.pushState({ tc: 'app', page: activePage }, '');
+  }, [activePage, user]);
 
   // ── Restore session ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -56,10 +88,13 @@ export default function App() {
       .then(u => {
         if (u) {
           setUser(u);
-          const stored = getStoredUserType() || 'company';
-          storeUserType(stored);
-          setUserType(stored);
-          return loadLeads();
+          const stored = getType(u.id);
+          if (stored) {
+            setUserType(stored);
+            return loadLeads();
+          }
+          // No type stored for this user — show mode select
+          setAppStep('mode-select');
         }
       })
       .catch(() => {})
@@ -67,49 +102,50 @@ export default function App() {
   }, []);
 
   async function loadLeads() {
-    try { setLeads(await fetchLeads()); } catch { /* backend may not be running */ }
+    try { setLeads(await fetchLeads()); } catch {}
   }
 
   // ── Auth handlers ────────────────────────────────────────────────────────────
-  const handleAuth = useCallback((u, isNewUser) => {
+  const handleAuth = useCallback((u) => {
     setUser(u);
-    const stored = getStoredUserType();
-    if (isNewUser && !stored) {
-      setAppStep('mode-select');
-    } else {
-      const type = stored || 'company';
-      storeUserType(type);
-      setUserType(type);
+    const stored = getType(u.id);
+    if (stored) {
+      setUserType(stored);
       setAppStep('app');
       loadLeads();
+      window.history.pushState({ tc: 'app', page: 'Dashboard' }, '');
+    } else {
+      // No mode chosen for this account yet — always prompt
+      setAppStep('mode-select');
+      window.history.pushState({ tc: 'app', page: 'Dashboard' }, '');
     }
   }, []);
 
   const handleModeSelect = useCallback((type) => {
     if (!VALID_TYPES.includes(type)) return;
-    storeUserType(type);
     setUserType(type);
+    if (user) saveType(user.id, type);
     if (type === 'jobseeker') {
       setAppStep('jobseeker-setup');
     } else {
       setAppStep('app');
       loadLeads();
     }
-  }, []);
+  }, [user]);
 
-  const handleJobSeekerSetupComplete = useCallback(() => {
-    setAppStep('app');
-  }, []);
+  const handleJobSeekerSetupComplete = useCallback(() => { setAppStep('app'); }, []);
 
   const handleLogout = useCallback(() => {
+    if (user) clearType(user.id);
     logout();
-    clearStoredUserType();
     setUser(null);
     setUserType(null);
     setLeads([]);
     setActivePage('Dashboard');
     setAppStep('app');
-  }, []);
+    setViewingLanding(true);
+    window.history.pushState({ tc: 'landing' }, '');
+  }, [user]);
 
   // ── Lead persistence ─────────────────────────────────────────────────────────
   const handleLeadSaved = useCallback(async (lead) => {
@@ -120,8 +156,7 @@ export default function App() {
         return exists ? prev.map(l => l.id === saved.id ? saved : l) : [saved, ...prev];
       });
       return saved;
-    } catch (err) {
-      console.error('Failed to save lead:', err);
+    } catch {
       setLeads(prev => [lead, ...prev]);
       return lead;
     }
@@ -132,44 +167,49 @@ export default function App() {
     try {
       const saved = await updateLeadApi(updated.id, { status: updated.status });
       setLeads(prev => prev.map(l => l.id === saved.id ? saved : l));
-    } catch (err) {
-      console.error('Failed to update lead:', err);
-    }
+    } catch {}
   }, []);
 
   // ── Render guards ─────────────────────────────────────────────────────────────
-  if (!authChecked)                   return null;
-  if (!user && viewingLanding)        return <LandingPage onGetStarted={() => setViewingLanding(false)} />;
-  if (!user)                          return <AuthPage onAuth={handleAuth} />;
-  if (appStep === 'mode-select')      return <ModeSelectPage onSelect={handleModeSelect} />;
-  if (appStep === 'jobseeker-setup')  return <JobSeekerSetupPage user={user} onComplete={handleJobSeekerSetupComplete} />;
+  if (!authChecked) return null;
+
+  if (!user && viewingLanding) {
+    return (
+      <LandingPage onGetStarted={() => {
+        window.history.pushState({ tc: 'auth' }, '');
+        setViewingLanding(false);
+      }} />
+    );
+  }
+
+  if (!user)                         return <AuthPage onAuth={handleAuth} />;
+  if (appStep === 'mode-select')     return <ModeSelectPage onSelect={handleModeSelect} />;
+  if (appStep === 'jobseeker-setup') return <JobSeekerSetupPage user={user} onComplete={handleJobSeekerSetupComplete} />;
 
   const isJobSeeker = userType === 'jobseeker';
 
   const renderPage = () => {
-    // ── Job seeker pages ──────────────────────────────────────────────────────
     if (isJobSeeker) {
       switch (activePage) {
-        case 'Dashboard':     return <JobSeekerDashboard user={user} setActivePage={setActivePage} />;
+        case 'Dashboard':     return <JobSeekerDashboard user={user} setActivePage={pushPage} />;
         case 'CV Optimiser':  return <CVOptimiserPage />;
-        case 'Job Matches':   return <JobMatchesPage setActivePage={setActivePage} />;
-        case 'Applications':  return <ApplicationsPage setActivePage={setActivePage} />;
+        case 'Job Matches':   return <JobMatchesPage setActivePage={pushPage} />;
+        case 'Applications':  return <ApplicationsPage setActivePage={pushPage} />;
         case 'Scam Detector': return <ScamDetectorPage />;
         case 'Outreach':      return <OutreachAssistantPage />;
-        case 'Agent':         return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => setActivePage('Settings')} />;
+        case 'Agent':         return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => pushPage('Settings')} />;
         case 'Settings':      return <SettingsPage user={user} onUserUpdated={setUser} />;
-        default:              return <JobSeekerDashboard user={user} setActivePage={setActivePage} />;
+        default:              return <JobSeekerDashboard user={user} setActivePage={pushPage} />;
       }
     }
-    // ── Company pages (unchanged) ─────────────────────────────────────────────
     switch (activePage) {
-      case 'Dashboard':  return <Dashboard leads={leads} setActivePage={setActivePage} />;
-      case 'Agent':      return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => setActivePage('Settings')} />;
-      case 'Leads':      return <LeadsPage leads={leads} onUpdateLead={handleUpdateLead} setActivePage={setActivePage} />;
+      case 'Dashboard':  return <Dashboard leads={leads} setActivePage={pushPage} />;
+      case 'Agent':      return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => pushPage('Settings')} />;
+      case 'Leads':      return <LeadsPage leads={leads} onUpdateLead={handleUpdateLead} setActivePage={pushPage} />;
       case 'Sequences':  return <SequencesPage leads={leads} />;
       case 'Batch':      return <BatchPage onLeadSaved={handleLeadSaved} user={user} />;
       case 'Settings':   return <SettingsPage user={user} onUserUpdated={setUser} />;
-      default:           return <Dashboard leads={leads} setActivePage={setActivePage} />;
+      default:           return <Dashboard leads={leads} setActivePage={pushPage} />;
     }
   };
 
@@ -180,18 +220,18 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: '#0A0F0F', display: 'flex', flexDirection: 'column' }}>
       <Navbar
         activePage={activePage}
-        setActivePage={setActivePage}
+        setActivePage={pushPage}
         user={user}
         userType={userType}
         onLogout={handleLogout}
-        onSettings={() => setActivePage('Settings')}
+        onSettings={() => pushPage('Settings')}
       />
 
       {activePage !== floatingTarget && (
         <button
-          onClick={() => setActivePage(floatingTarget)}
+          onClick={() => pushPage(floatingTarget)}
           style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 40,
+            position: 'fixed', bottom: 24, right: 24, zIndex: 40, bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
             background: 'linear-gradient(135deg, #00D4C8, #00B8AD)',
             color: '#0A0F0F', border: 'none', borderRadius: 12,
             padding: '12px 20px', fontSize: 13, fontWeight: 700,
@@ -203,7 +243,7 @@ export default function App() {
         </button>
       )}
 
-      <main style={{ marginTop: 56, flex: 1, overflow: 'hidden', height: 'calc(100vh - 56px)' }}>
+      <main data-main style={{ marginTop: 56, flex: 1, overflow: 'hidden', height: 'calc(100vh - 56px)' }}>
         {renderPage()}
       </main>
     </div>

@@ -17,12 +17,14 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
   const displayName = user?.name || user?.email?.split('@')[0] || 'User';
 
   return (
-    <nav style={{
+    <nav data-fixed style={{
       background: 'rgba(10,15,15,0.92)', backdropFilter: 'blur(16px)',
       borderBottom: '1px solid #1E3030',
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: isMobile ? '0 12px' : '0 24px', height: 56,
+      padding: isMobile ? '0 12px' : '0 24px',
+      paddingTop: 'max(0px, env(safe-area-inset-top, 0px))',
+      height: 'calc(56px + env(safe-area-inset-top, 0px))',
       gap: isMobile ? 8 : 0,
     }}>
       {/* Logo */}
@@ -37,11 +39,6 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
           <Zap size={14} color="#0A0F0F" fill="#0A0F0F" />
         </div>
         <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.4px', color: '#00D4C8', fontFamily: "'Clash Display', sans-serif" }}>techcori</span>
-        <span style={{
-          fontSize: 9, fontWeight: 700, color: '#00D4C8',
-          background: 'rgba(0,212,200,0.1)', border: '1px solid rgba(0,212,200,0.2)',
-          borderRadius: 4, padding: '1px 6px', letterSpacing: '0.5px',
-        }}>BETA</span>
         {!isMobile && (
           <span style={{ fontSize: 11, color: '#4A7A78', marginLeft: 4, fontStyle: 'italic' }}>
             work smart, rise sharp

@@ -119,3 +119,29 @@ h1, h2, h3, h4, h5, h6 {
 textarea, input, select {
   font-family: inherit;
 }
+
+/* PWA / homescreen safe areas (iPhone notch + home indicator) */
+:root {
+  --sat: env(safe-area-inset-top,    0px);
+  --sar: env(safe-area-inset-right,  0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left,   0px);
+}
+
+/* Fixed nav must clear the status-bar notch */
+nav[data-fixed] {
+  padding-top: var(--sat);
+  height: calc(56px + var(--sat));
+}
+
+/* Main content shifts down by the taller nav */
+main[data-main] {
+  margin-top: calc(56px + var(--sat));
+  height: calc(100vh - 56px - var(--sat));
+  padding-bottom: var(--sab);
+}
+
+/* Floating action button clears the home indicator */
+button[data-fab] {
+  bottom: calc(24px + var(--sab));
+}

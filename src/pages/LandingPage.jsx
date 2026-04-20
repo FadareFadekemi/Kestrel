@@ -446,8 +446,6 @@ export default function LandingPage({ onGetStarted }) {
             </div>
             <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.5px', color: A,
               fontFamily: "'Clash Display', sans-serif" }}>techcori</span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: A, background: AD,
-              border: `1px solid ${AB}`, borderRadius: 4, padding: '2px 6px', letterSpacing: '0.5px' }}>BETA</span>
           </div>
 
           {/* Desktop nav links — hidden on mobile */}
@@ -524,7 +522,7 @@ export default function LandingPage({ onGetStarted }) {
           {/* Left: Text */}
           <div ref={heroRef} className="reveal" style={{ maxWidth: 520 }}>
             <div style={{ marginBottom: 20 }}>
-              <Pill>Now in Beta · Built for Nigeria</Pill>
+              <Pill>AI Platform · Built for Nigeria</Pill>
             </div>
             <h1 style={{ fontSize: 'clamp(32px, 5vw, 54px)', fontWeight: 900,
               lineHeight: 1.1, letterSpacing: '-1.5px', color: '#E8F5F4', margin: '0 0 20px' }}>
