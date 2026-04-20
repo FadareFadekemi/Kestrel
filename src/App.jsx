@@ -243,7 +243,7 @@ export default function App() {
         </button>
       )}
 
-      <main data-main style={{ marginTop: 56, flex: 1, overflow: 'hidden', height: 'calc(100vh - 56px)' }}>
+      <main data-main style={{ marginTop: 'calc(56px + env(safe-area-inset-top, 0px))', flex: 1, overflow: 'hidden', height: 'calc(100vh - 56px - env(safe-area-inset-top, 0px))' }}>
         {renderPage()}
       </main>
     </div>
