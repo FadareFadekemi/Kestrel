@@ -433,6 +433,7 @@ export default function LandingPage({ onGetStarted }) {
         borderBottom: scrolled ? `1px solid ${BRD}` : '1px solid transparent',
         transition: 'all 0.3s ease',
       }}>
+        <div style={{ height: 'env(safe-area-inset-top, 0px)' }} />
         <div style={{ maxWidth: 1160, margin: '0 auto', padding: '0 20px', height: 64,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
@@ -507,7 +508,7 @@ export default function LandingPage({ onGetStarted }) {
       </nav>
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <section className="grid-bg" style={{ paddingTop: 120, paddingBottom: 80, position: 'relative', overflow: 'hidden' }}>
+      <section className="grid-bg" style={{ paddingTop: 'calc(120px + env(safe-area-inset-top, 0px))', paddingBottom: 80, position: 'relative', overflow: 'hidden' }}>
         {/* Background glow */}
         <div style={{ position: 'absolute', top: -200, left: '50%', transform: 'translateX(-50%)',
           width: 800, height: 600, borderRadius: '50%',
