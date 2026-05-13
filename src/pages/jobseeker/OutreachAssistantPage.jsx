@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Search, Building2, Mail, CheckCircle, Copy, RotateCcw, Loader, AlertCircle, ChevronRight, Zap } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
 import { jsResearch, jsProfiling, jsEmail } from '../../services/jsApi';
+import { useTheme } from '../../context/ThemeContext';
 
 const JS_PROFILE_KEY  = 'kestrel_jobseeker_profile';
 const APPS_KEY        = 'kestrel_js_applications';
@@ -22,6 +23,7 @@ function saveApp(app) {
 const STEPS = ['Research', 'Company Profile', 'Write Email'];
 
 function StepIndicator({ current }) {
+  const { colors: c } = useTheme();
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 28 }}>
       {STEPS.map((s, i) => {
@@ -30,10 +32,10 @@ function StepIndicator({ current }) {
         return (
           <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: done ? '#34d399' : active ? 'rgba(0,212,200,0.2)' : '#1E3030', border: done ? '2px solid #34d399' : active ? '2px solid #00D4C8' : '2px solid #264040', color: done ? '#0A0F0F' : active ? '#00D4C8' : '#4A7A78', flexShrink: 0 }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: done ? '#34d399' : active ? 'rgba(0,212,200,0.2)' : c.brd, border: done ? '2px solid #34d399' : active ? '2px solid #00D4C8' : '2px solid #264040', color: done ? c.bg : active ? '#00D4C8' : c.mut, flexShrink: 0 }}>
                 {done ? <CheckCircle size={13} /> : i + 1}
               </div>
-              <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? '#E8F5F4' : done ? '#4A7A78' : '#4A7A78', whiteSpace: 'nowrap' }}>{s}</span>
+              <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? c.txt : c.mut, whiteSpace: 'nowrap' }}>{s}</span>
             </div>
             {i < STEPS.length - 1 && (
               <ChevronRight size={14} color="#264040" style={{ margin: '0 8px', flexShrink: 0 }} />
@@ -46,11 +48,13 @@ function StepIndicator({ current }) {
 }
 
 function Skeleton({ height = 16, width = '100%', style = {} }) {
-  return <div style={{ height, width, background: 'linear-gradient(90deg,#1E3030 25%,#264040 50%,#1E3030 75%)', backgroundSize: '200% 100%', borderRadius: 4, animation: 'shimmer 1.4s infinite', ...style }} />;
+  const { colors: c } = useTheme();
+  return <div style={{ height, width, background: `linear-gradient(90deg,${c.brd} 25%,#264040 50%,${c.brd} 75%)`, backgroundSize: '200% 100%', borderRadius: 4, animation: 'shimmer 1.4s infinite', ...style }} />;
 }
 
 export default function OutreachAssistantPage() {
   const isMobile   = useIsMobile();
+  const { colors: c } = useTheme();
   const profile    = readProfile();
   const targetRole = profile.targetRole || '';
 
@@ -68,9 +72,9 @@ export default function OutreachAssistantPage() {
   const [copyDone,   setCopyDone]   = useState(false);
   const [saved,      setSaved]      = useState(false);
 
-  const inputStyle = { background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 8, padding: '9px 12px', color: '#E8F5F4', fontSize: 13, outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.15s' };
+  const inputStyle = { background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '9px 12px', color: c.txt, fontSize: 13, outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.15s' };
   const onF = e => (e.target.style.borderColor = '#00D4C8');
-  const onB = e => (e.target.style.borderColor = '#1E3030');
+  const onB = e => (e.target.style.borderColor = c.brd);
 
   const reset = () => {
     setStep(0); setResearch(null); setCompProfile(null); setEmail(null);
@@ -150,10 +154,10 @@ export default function OutreachAssistantPage() {
     return (
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 11, color: '#4A7A78' }}>{label}</span>
+          <span style={{ fontSize: 11, color: c.mut }}>{label}</span>
           <span style={{ fontSize: 11, fontWeight: 700, color }}>{score}</span>
         </div>
-        <div style={{ height: 5, background: '#1E3030', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: 5, background: c.brd, borderRadius: 3, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${Math.min(score, 100)}%`, background: color, borderRadius: 3, transition: 'width 0.5s ease' }} />
         </div>
       </div>
@@ -166,12 +170,12 @@ export default function OutreachAssistantPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Outreach Assistant</h1>
-          <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>Research a company → score the fit → write a personalised email</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: 0 }}>Outreach Assistant</h1>
+          <p style={{ fontSize: 13, color: c.mut, marginTop: 4 }}>Research a company → score the fit → write a personalised email</p>
         </div>
         {step > 0 && (
           <button onClick={reset}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid #264040', borderRadius: 8, padding: '7px 14px', color: '#4A7A78', fontSize: 12, cursor: 'pointer' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid #264040', borderRadius: 8, padding: '7px 14px', color: c.mut, fontSize: 12, cursor: 'pointer' }}>
             <RotateCcw size={13} /> Start over
           </button>
         )}
@@ -182,25 +186,25 @@ export default function OutreachAssistantPage() {
 
         {/* Step 0: Input */}
         {step === 0 && (
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 24 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 16px' }}>Who are you reaching out to?</p>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 24 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 16px' }}>Who are you reaching out to?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Company name</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: c.mut, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Company name</label>
                 <input value={company} onChange={e => setCompany(e.target.value)} onFocus={onF} onBlur={onB}
                   placeholder="e.g. Paystack, MTN Nigeria, Flutterwave" style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Target role</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: c.mut, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Target role</label>
                 <input value={role} onChange={e => setRole(e.target.value)} onFocus={onF} onBlur={onB}
                   placeholder={targetRole || 'e.g. Software Engineer, Product Manager'} style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email tone</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: c.mut, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email tone</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {TONES.map(t => (
                     <button key={t} onClick={() => setTone(t)}
-                      style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${tone === t ? 'rgba(0,212,200,0.4)' : '#1E3030'}`, background: tone === t ? 'rgba(0,212,200,0.1)' : 'transparent', color: tone === t ? '#00D4C8' : '#4A7A78', fontSize: 12, fontWeight: tone === t ? 600 : 400, cursor: 'pointer' }}>
+                      style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${tone === t ? 'rgba(0,212,200,0.4)' : c.brd}`, background: tone === t ? 'rgba(0,212,200,0.1)' : 'transparent', color: tone === t ? '#00D4C8' : c.mut, fontSize: 12, fontWeight: tone === t ? 600 : 400, cursor: 'pointer' }}>
                       {t}
                     </button>
                   ))}
@@ -225,12 +229,12 @@ export default function OutreachAssistantPage() {
 
         {/* Step 1: Loading/profiling */}
         {step === 1 && (loading || status) && (
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, color: '#4A7A78', fontSize: 13 }}>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, color: c.mut, fontSize: 13 }}>
               <Loader size={15} style={{ animation: 'spin 1s linear infinite', color: '#00D4C8' }} />
               {status || 'Scoring company fit…'}
             </div>
-            {streaming && <p style={{ fontSize: 13, color: '#4A7A78', margin: 0, lineHeight: 1.7, fontFamily: 'monospace' }}>{streaming}</p>}
+            {streaming && <p style={{ fontSize: 13, color: c.mut, margin: 0, lineHeight: 1.7, fontFamily: 'monospace' }}>{streaming}</p>}
             {!streaming && (
               <div>
                 <Skeleton height={14} width="70%" style={{ marginBottom: 8 }} />
@@ -250,19 +254,19 @@ export default function OutreachAssistantPage() {
         {step === 2 && compProfile && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Profile card */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <div>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>{compProfile.companyName || company}</p>
-                  <p style={{ fontSize: 12, color: '#4A7A78', margin: '4px 0 0' }}>{compProfile.industry} · {compProfile.companySize} · {compProfile.location}</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: c.txt, margin: 0 }}>{compProfile.companyName || company}</p>
+                  <p style={{ fontSize: 12, color: c.mut, margin: '4px 0 0' }}>{compProfile.industry} · {compProfile.companySize} · {compProfile.location}</p>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 26, fontWeight: 800, color: compProfile.scores?.overall >= 70 ? '#34d399' : compProfile.scores?.overall >= 40 ? '#00D4C8' : '#f87171' }}>{compProfile.scores?.overall}</div>
-                  <div style={{ fontSize: 10, color: '#4A7A78' }}>Overall fit</div>
+                  <div style={{ fontSize: 10, color: c.mut }}>Overall fit</div>
                 </div>
               </div>
 
-              {compProfile.culture && <p style={{ fontSize: 12, color: '#8ABAB8', margin: '0 0 16px', lineHeight: 1.6, borderLeft: '2px solid #264040', paddingLeft: 10 }}>{compProfile.culture}</p>}
+              {compProfile.culture && <p style={{ fontSize: 12, color: c.mut2, margin: '0 0 16px', lineHeight: 1.6, borderLeft: '2px solid #264040', paddingLeft: 10 }}>{compProfile.culture}</p>}
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                 <div>
@@ -273,31 +277,31 @@ export default function OutreachAssistantPage() {
                 <div>
                   {compProfile.hiringSignals?.length > 0 && (
                     <div style={{ marginBottom: 12 }}>
-                      <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Hiring signals</p>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Hiring signals</p>
                       <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
-                        {compProfile.hiringSignals.slice(0, 3).map((s, i) => <li key={i} style={{ fontSize: 12, color: '#8ABAB8', marginBottom: 4, lineHeight: 1.5 }}>{s}</li>)}
+                        {compProfile.hiringSignals.slice(0, 3).map((s, i) => <li key={i} style={{ fontSize: 12, color: c.mut2, marginBottom: 4, lineHeight: 1.5 }}>{s}</li>)}
                       </ul>
                     </div>
                   )}
                   {compProfile.hiringManagerHint && (
                     <div style={{ background: 'rgba(0,212,200,0.05)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 7, padding: '8px 10px' }}>
                       <p style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', margin: '0 0 3px' }}>Likely recipient</p>
-                      <p style={{ fontSize: 12, color: '#8ABAB8', margin: 0 }}>{compProfile.hiringManagerHint}</p>
+                      <p style={{ fontSize: 12, color: c.mut2, margin: 0 }}>{compProfile.hiringManagerHint}</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {compProfile.scoreReasoning && <p style={{ fontSize: 12, color: '#4A7A78', margin: '14px 0 0', lineHeight: 1.6 }}>{compProfile.scoreReasoning}</p>}
+              {compProfile.scoreReasoning && <p style={{ fontSize: 12, color: c.mut, margin: '14px 0 0', lineHeight: 1.6 }}>{compProfile.scoreReasoning}</p>}
             </div>
 
             {/* Tone selector */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 12px' }}>Email tone</p>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Email tone</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {TONES.map(t => (
                   <button key={t} onClick={() => setTone(t)}
-                    style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${tone === t ? 'rgba(0,212,200,0.4)' : '#1E3030'}`, background: tone === t ? 'rgba(0,212,200,0.1)' : 'transparent', color: tone === t ? '#00D4C8' : '#4A7A78', fontSize: 12, fontWeight: tone === t ? 600 : 400, cursor: 'pointer' }}>
+                    style={{ flex: 1, padding: '8px', borderRadius: 8, border: `1px solid ${tone === t ? 'rgba(0,212,200,0.4)' : c.brd}`, background: tone === t ? 'rgba(0,212,200,0.1)' : 'transparent', color: tone === t ? '#00D4C8' : c.mut, fontSize: 12, fontWeight: tone === t ? 600 : 400, cursor: 'pointer' }}>
                     {t}
                   </button>
                 ))}
@@ -318,9 +322,9 @@ export default function OutreachAssistantPage() {
                 </button>
               )}
 
-              {loading && streaming && <p style={{ fontSize: 12, color: '#4A7A78', margin: '12px 0 0', lineHeight: 1.7, fontFamily: 'monospace' }}>{streaming}</p>}
+              {loading && streaming && <p style={{ fontSize: 12, color: c.mut, margin: '12px 0 0', lineHeight: 1.7, fontFamily: 'monospace' }}>{streaming}</p>}
               {loading && !streaming && status && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, color: '#4A7A78', fontSize: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, color: c.mut, fontSize: 12 }}>
                   <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> {status}
                 </div>
               )}
@@ -328,12 +332,12 @@ export default function OutreachAssistantPage() {
 
             {/* Email result */}
             {email && (
-              <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+              <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>Your outreach email</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>Your outreach email</p>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={handleWriteEmail} disabled={loading}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid #264040', borderRadius: 7, padding: '6px 10px', color: '#4A7A78', fontSize: 12, cursor: 'pointer' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid #264040', borderRadius: 7, padding: '6px 10px', color: c.mut, fontSize: 12, cursor: 'pointer' }}>
                       <RotateCcw size={12} /> Regenerate
                     </button>
                     <button onClick={handleCopy}
@@ -343,15 +347,15 @@ export default function OutreachAssistantPage() {
                   </div>
                 </div>
 
-                <div style={{ background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Subject</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#E8F5F4', margin: '0 0 16px' }}>{email.subject}</p>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
+                <div style={{ background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Subject</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: c.txt, margin: '0 0 16px' }}>{email.subject}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
                   <p style={{ fontSize: 13, color: '#C5E8E6', margin: 0, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{email.body}</p>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  <span style={{ fontSize: 11, color: '#4A7A78' }}>{email.wordCount || '—'} words · {email.tone} tone</span>
+                  <span style={{ fontSize: 11, color: c.mut }}>{email.wordCount || '—'} words · {email.tone} tone</span>
                   <button onClick={handleSaveToApplications} disabled={saved}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, background: saved ? 'rgba(52,211,153,0.1)' : 'rgba(96,165,250,0.1)', border: `1px solid ${saved ? 'rgba(52,211,153,0.25)' : 'rgba(96,165,250,0.25)'}`, borderRadius: 8, padding: '8px 14px', color: saved ? '#34d399' : '#60a5fa', fontSize: 12, fontWeight: 600, cursor: saved ? 'default' : 'pointer' }}>
                     {saved ? <CheckCircle size={13} /> : <Zap size={13} />} {saved ? 'Saved to Applications' : 'Save to Applications'}

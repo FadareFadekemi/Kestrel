@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Plus, X, BarChart2, TrendingUp, Clock, Zap, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
 import { jsFollowup } from '../../services/jsApi';
+import { useTheme } from '../../context/ThemeContext';
 
 const APPS_KEY = 'kestrel_js_applications';
 
@@ -43,11 +44,12 @@ function analytics(apps) {
 }
 
 function AddCardModal({ onAdd, onClose }) {
+  const { colors: c } = useTheme();
   const [form, setForm] = useState({ company: '', role: '', sector: '', status: 'Draft', appliedDate: new Date().toISOString().slice(0, 10), emailSubject: '' });
   const set = (f, v) => setForm(p => ({ ...p, [f]: v }));
-  const inputStyle = { width: '100%', background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 8, padding: '8px 12px', color: '#E8F5F4', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.15s' };
+  const inputStyle = { width: '100%', background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '8px 12px', color: c.txt, fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.15s' };
   const onF = e => (e.target.style.borderColor = '#00D4C8');
-  const onB = e => (e.target.style.borderColor = '#1E3030');
+  const onB = e => (e.target.style.borderColor = c.brd);
   const handleSubmit = () => {
     if (!form.company.trim() || !form.role.trim()) return;
     onAdd({ ...form, id: Date.now(), createdAt: new Date().toISOString() });
@@ -55,11 +57,11 @@ function AddCardModal({ onAdd, onClose }) {
   };
   const valid = form.company.trim() && form.role.trim();
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 14, padding: 24, width: '100%', maxWidth: 440 }}>
+    <div style={{ position: 'fixed', inset: 0, background: c.overlay, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 14, padding: 24, width: '100%', maxWidth: 440 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Add Application</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4A7A78', cursor: 'pointer', display: 'flex' }}><X size={16} /></button>
+          <p style={{ fontSize: 14, fontWeight: 700, color: c.txt, margin: 0 }}>Add Application</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: c.mut, cursor: 'pointer', display: 'flex' }}><X size={16} /></button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <input value={form.company} onChange={e => set('company', e.target.value)} onFocus={onF} onBlur={onB} placeholder="Company name *" style={inputStyle} />
@@ -74,7 +76,7 @@ function AddCardModal({ onAdd, onClose }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, background: 'none', border: '1px solid #1E3030', borderRadius: 8, padding: '9px', color: '#4A7A78', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ flex: 1, background: 'none', border: `1px solid ${c.brd}`, borderRadius: 8, padding: '9px', color: c.mut, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSubmit} disabled={!valid}
             style={{ flex: 1, background: 'rgba(0,212,200,0.15)', border: '1px solid rgba(0,212,200,0.3)', borderRadius: 8, padding: '9px', color: '#00D4C8', fontSize: 13, fontWeight: 600, cursor: valid ? 'pointer' : 'not-allowed', opacity: valid ? 1 : 0.5 }}>
             Add
@@ -86,6 +88,7 @@ function AddCardModal({ onAdd, onClose }) {
 }
 
 function FollowupModal({ app, onClose }) {
+  const { colors: c } = useTheme();
   const [loading,  setLoading]  = useState(false);
   const [result,   setResult]   = useState(null);
   const [error,    setError]    = useState('');
@@ -105,18 +108,18 @@ function FollowupModal({ app, onClose }) {
     });
   };
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 14, padding: 24, width: '100%', maxWidth: 500 }}>
+    <div style={{ position: 'fixed', inset: 0, background: c.overlay, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 14, padding: 24, width: '100%', maxWidth: 500 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>AI Follow-up Email</p>
-            <p style={{ fontSize: 11, color: '#4A7A78', margin: '3px 0 0' }}>{app.company} · {daysSince(app.appliedDate)}d since application</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: c.txt, margin: 0 }}>AI Follow-up Email</p>
+            <p style={{ fontSize: 11, color: c.mut, margin: '3px 0 0' }}>{app.company} · {daysSince(app.appliedDate)}d since application</p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4A7A78', cursor: 'pointer', display: 'flex' }}><X size={16} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: c.mut, cursor: 'pointer', display: 'flex' }}><X size={16} /></button>
         </div>
         {!result && !loading && (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <p style={{ fontSize: 13, color: '#4A7A78', margin: '0 0 16px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: c.mut, margin: '0 0 16px', lineHeight: 1.6 }}>
               No reply from <strong style={{ color: '#C5E8E6' }}>{app.company}</strong> after {daysSince(app.appliedDate)} days. techcori will write a brief follow-up that adds a new angle — not just "following up".
             </p>
             <button onClick={generate}
@@ -126,7 +129,7 @@ function FollowupModal({ app, onClose }) {
           </div>
         )}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '30px 0', color: '#4A7A78', fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '30px 0', color: c.mut, fontSize: 13 }}>
             <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Writing…
           </div>
         )}
@@ -137,14 +140,14 @@ function FollowupModal({ app, onClose }) {
         )}
         {result && (
           <div>
-            <div style={{ background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Subject</p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 14px' }}>{result.subject}</p>
-              <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
+            <div style={{ background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Subject</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 14px' }}>{result.subject}</p>
+              <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
               <p style={{ fontSize: 13, color: '#C5E8E6', margin: 0, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{result.body}</p>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={generate} style={{ flex: 1, background: 'none', border: '1px solid #264040', borderRadius: 8, padding: '9px', color: '#4A7A78', fontSize: 12, cursor: 'pointer' }}>Regenerate</button>
+              <button onClick={generate} style={{ flex: 1, background: 'none', border: '1px solid #264040', borderRadius: 8, padding: '9px', color: c.mut, fontSize: 12, cursor: 'pointer' }}>Regenerate</button>
               <button onClick={handleCopy}
                 style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: copyDone ? 'rgba(52,211,153,0.12)' : 'rgba(0,212,200,0.12)', border: `1px solid ${copyDone ? 'rgba(52,211,153,0.3)' : 'rgba(0,212,200,0.3)'}`, borderRadius: 8, padding: '9px', color: copyDone ? '#34d399' : '#00D4C8', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {copyDone ? <CheckCircle size={13} /> : null}{copyDone ? 'Copied!' : 'Copy Email'}
@@ -158,18 +161,20 @@ function FollowupModal({ app, onClose }) {
 }
 
 function KanbanCard({ app, onDragStart, onStatusChange, onDelete, onFollowup }) {
-  const col  = COL_MAP[app.status] || COL_MAP['Draft'];
+  const { colors: c } = useTheme();
+  const rawCol = COL_MAP[app.status] || COL_MAP['Draft'];
+  const col = rawCol.color === '#4A7A78' ? { ...rawCol, color: c.mut } : rawCol;
   const days = daysSince(app.appliedDate);
   const needsFollowup = app.status === 'Applied' && days >= 7;
   return (
     <div draggable onDragStart={() => onDragStart(app.id)}
-      style={{ background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 9, padding: '12px 14px', cursor: 'grab', marginBottom: 8 }}
+      style={{ background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 9, padding: '12px 14px', cursor: 'grab', marginBottom: 8 }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = '#264040')}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = '#1E3030')}>
+      onMouseLeave={e => (e.currentTarget.style.borderColor = c.brd)}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.company}</p>
-          <p style={{ fontSize: 11, color: '#4A7A78', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.role}</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.company}</p>
+          <p style={{ fontSize: 11, color: c.mut, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.role}</p>
         </div>
         <button onClick={() => onDelete(app.id)} style={{ background: 'none', border: 'none', color: '#264040', cursor: 'pointer', display: 'flex', flexShrink: 0, padding: 2 }}
           onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
@@ -177,9 +182,9 @@ function KanbanCard({ app, onDragStart, onStatusChange, onDelete, onFollowup }) 
           <X size={12} />
         </button>
       </div>
-      {app.sector && <span style={{ fontSize: 10, color: '#4A7A78', background: '#111A1A', border: '1px solid #1E3030', borderRadius: 4, padding: '1px 6px' }}>{app.sector}</span>}
+      {app.sector && <span style={{ fontSize: 10, color: c.mut, background: c.card, border: `1px solid ${c.brd}`, borderRadius: 4, padding: '1px 6px' }}>{app.sector}</span>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-        <span style={{ fontSize: 10, color: '#4A7A78' }}>{app.appliedDate ? `${days}d ago` : '—'}</span>
+        <span style={{ fontSize: 10, color: c.mut }}>{app.appliedDate ? `${days}d ago` : '—'}</span>
         <select value={app.status} onChange={e => onStatusChange(app.id, e.target.value)} onClick={e => e.stopPropagation()}
           style={{ fontSize: 10, fontWeight: 600, color: col.color, background: col.bg, border: `1px solid ${col.color}30`, borderRadius: 6, padding: '2px 5px', cursor: 'pointer', outline: 'none' }}>
           {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
@@ -197,6 +202,7 @@ function KanbanCard({ app, onDragStart, onStatusChange, onDelete, onFollowup }) 
 
 export default function ApplicationsPage({ setActivePage }) {
   const isMobile = useIsMobile();
+  const { colors: c } = useTheme();
   const [apps, setAppsState]   = useState(readApps);
   const [showAdd, setShowAdd]  = useState(false);
   const [followupApp, setFollowupApp] = useState(null);
@@ -228,12 +234,12 @@ export default function ApplicationsPage({ setActivePage }) {
       <div style={{ padding: isMobile ? '16px 16px 0' : '24px 28px 0', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Applications</h1>
-            <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>{apps.length} total · {stats.sent} sent · {stats.rate}% response rate</p>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: 0 }}>Applications</h1>
+            <p style={{ fontSize: 13, color: c.mut, marginTop: 4 }}>{apps.length} total · {stats.sent} sent · {stats.rate}% response rate</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setShowAnalytics(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, background: showAnalytics ? 'rgba(96,165,250,0.1)' : '#111A1A', border: `1px solid ${showAnalytics ? 'rgba(96,165,250,0.25)' : '#1E3030'}`, borderRadius: 8, padding: '8px 12px', color: showAnalytics ? '#60a5fa' : '#4A7A78', fontSize: 12, cursor: 'pointer' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: showAnalytics ? 'rgba(96,165,250,0.1)' : c.card, border: `1px solid ${showAnalytics ? 'rgba(96,165,250,0.25)' : c.brd}`, borderRadius: 8, padding: '8px 12px', color: showAnalytics ? '#60a5fa' : c.mut, fontSize: 12, cursor: 'pointer' }}>
               <BarChart2 size={13} /> Analytics
             </button>
             <button onClick={() => setShowAdd(true)}
@@ -261,18 +267,18 @@ export default function ApplicationsPage({ setActivePage }) {
                 { icon: <CheckCircle size={13} color="#34d399" />, label: 'Interviews',   value: stats.replied,      color: '#34d399' },
                 { icon: <Clock size={13} color="#60a5fa" />,       label: 'In Progress',  value: apps.filter(a => ['Applied','Followed Up','Interview'].includes(a.status)).length, color: '#60a5fa' },
               ].map(({ icon, label, value, color }) => (
-                <div key={label} style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 9, padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>{icon}<span style={{ fontSize: 11, color: '#4A7A78' }}>{label}</span></div>
+                <div key={label} style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 9, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>{icon}<span style={{ fontSize: 11, color: c.mut }}>{label}</span></div>
                   <span style={{ fontSize: 20, fontWeight: 700, color }}>{value}</span>
                 </div>
               ))}
             </div>
             {stats.topSectors.length > 0 && (
-              <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 9, padding: '12px 16px', marginBottom: 12 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Response by sector</p>
+              <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 9, padding: '12px 16px', marginBottom: 12 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Response by sector</p>
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   {stats.topSectors.map(({ sector, rate, sent }) => (
-                    <span key={sector} style={{ fontSize: 12, color: '#8ABAB8' }}>
+                    <span key={sector} style={{ fontSize: 12, color: c.mut2 }}>
                       {sector} <strong style={{ color: rate >= 50 ? '#34d399' : rate >= 25 ? '#00D4C8' : '#f87171' }}>{rate}%</strong> <span style={{ color: '#264040' }}>({sent})</span>
                     </span>
                   ))}
@@ -288,12 +294,13 @@ export default function ApplicationsPage({ setActivePage }) {
         <div style={{ display: 'flex', gap: 12, height: '100%', minWidth: COLUMNS.length * 220, paddingBottom: 4 }}>
           {COLUMNS.map(col => {
             const colApps = apps.filter(a => a.status === col.id);
+            const colColor = col.color === '#4A7A78' ? c.mut : col.color;
             return (
               <div key={col.id} onDragOver={onDragOver} onDrop={() => onDrop(col.id)}
-                style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', background: '#111113', border: '1px solid #1E3030', borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ padding: '10px 12px', borderBottom: '1px solid #1E3030', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: col.bg }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: col.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{col.label}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: col.color, background: `${col.color}20`, borderRadius: 20, padding: '1px 7px' }}>{colApps.length}</span>
+                style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column', background: c.card, border: `1px solid ${c.brd}`, borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ padding: '10px 12px', borderBottom: `1px solid ${c.brd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: col.bg }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: colColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{col.label}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: colColor, background: `${colColor}20`, borderRadius: 20, padding: '1px 7px' }}>{colApps.length}</span>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px 4px' }}>
                   {colApps.map(app => (

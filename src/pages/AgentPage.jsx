@@ -11,6 +11,7 @@ import { researchLead, profileLead, writeEmail, generateSequence, generateABVari
 import { runTrackerAgent } from '../services/tracker';
 import { AlertCircle } from 'lucide-react';
 import useIsMobile from '../hooks/useIsMobile';
+import { useTheme } from '../context/ThemeContext';
 
 const TABS = ['Research', 'Profile', 'Email', 'A/B Variants', 'Sequence'];
 
@@ -18,6 +19,7 @@ const IDLE_STATES = { research: 'idle', profiling: 'idle', email: 'idle', tracke
 
 export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
   const isMobile = useIsMobile();
+  const { colors: c } = useTheme();
   const [agentStates, setAgentStates]   = useState(IDLE_STATES);
   const [agentStatus,  setAgentStatus]  = useState({});  // per-agent status text
   const [streamText,   setStreamText]   = useState({});  // per-agent streaming text
@@ -200,7 +202,7 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
         </div>
 
         {/* Output tabs */}
-        <div style={{ borderBottom: '1px solid #1E3030', paddingLeft: isMobile ? 8 : 20, flexShrink: 0, display: 'flex', gap: 2, overflowX: 'auto' }}>
+        <div style={{ borderBottom: `1px solid ${c.brd}`, paddingLeft: isMobile ? 8 : 20, flexShrink: 0, display: 'flex', gap: 2, overflowX: 'auto' }}>
           {TABS.map(tab => {
             const hasContent = (
               (tab === 'Research'    && (research || agentStates.research === 'running')) ||
@@ -215,7 +217,7 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
                 onClick={() => setActiveTab(tab)}
                 style={{
                   fontSize: 12, fontWeight: activeTab === tab ? 600 : 400,
-                  color: activeTab === tab ? '#E8F5F4' : hasContent ? '#4A7A78' : '#264040',
+                  color: activeTab === tab ? c.txt : hasContent ? c.mut : c.brd,
                   borderBottom: activeTab === tab ? '2px solid #00D4C8' : '2px solid transparent',
                   background: 'transparent', border: 'none', borderRadius: 0,
                   padding: isMobile ? '10px 10px' : '10px 14px',
@@ -279,7 +281,7 @@ export default function AgentPage({ onLeadSaved, user, onGoToSettings }) {
 
       {/* Right panel — hidden on mobile */}
       {!isMobile && (
-        <div style={{ width: 240, borderLeft: '1px solid #1E3030', overflowY: 'auto', flexShrink: 0 }}>
+        <div style={{ width: 240, borderLeft: `1px solid ${c.brd}`, overflowY: 'auto', flexShrink: 0 }}>
           <RightPanel profile={profile} />
         </div>
       )}

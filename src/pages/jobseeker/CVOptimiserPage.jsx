@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { FileText, Wand2, Download, Copy, Loader, CheckCircle, Plus, Trash2, AlertCircle, Zap } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
 import { analyseCV, improveSummary, improveBullet, suggestSkills, matchJD } from '../../services/jsApi';
+import { useTheme } from '../../context/ThemeContext';
 
 const JS_PROFILE_KEY = 'kestrel_jobseeker_profile';
 const CV_BUILDER_KEY = 'kestrel_cv_builder';
@@ -27,26 +28,31 @@ function saveBuilder(b) {
 
 const TABS = ['CV Builder', 'Upload & Analyse', 'JD Matcher'];
 
-const ScoreBar = ({ label, score, color }) => (
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-      <span style={{ fontSize: 12, color: '#8ABAB8' }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 700, color }}>{score}</span>
+const ScoreBar = ({ label, score, color }) => {
+  const { colors: c } = useTheme();
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+        <span style={{ fontSize: 12, color: c.mut2 }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color }}>{score}</span>
+      </div>
+      <div style={{ height: 6, background: c.brd, borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${Math.min(score, 100)}%`, background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
+      </div>
     </div>
-    <div style={{ height: 6, background: '#1E3030', borderRadius: 3, overflow: 'hidden' }}>
-      <div style={{ height: '100%', width: `${Math.min(score, 100)}%`, background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
-    </div>
-  </div>
-);
+  );
+};
 
-const Skeleton = ({ height = 16, width = '100%', style = {} }) => (
-  <div style={{ height, width, background: 'linear-gradient(90deg,#1E3030 25%,#264040 50%,#1E3030 75%)', backgroundSize: '200% 100%', borderRadius: 4, animation: 'shimmer 1.4s infinite', ...style }} />
-);
+const Skeleton = ({ height = 16, width = '100%', style = {} }) => {
+  const { colors: c } = useTheme();
+  return <div style={{ height, width, background: `linear-gradient(90deg,${c.brd} 25%,#264040 50%,${c.brd} 75%)`, backgroundSize: '200% 100%', borderRadius: 4, animation: 'shimmer 1.4s infinite', ...style }} />;
+};
 
 function scoreColor(s) { return s >= 70 ? '#34d399' : s >= 40 ? '#00D4C8' : '#f87171'; }
 
 export default function CVOptimiserPage() {
   const isMobile  = useIsMobile();
+  const { colors: c } = useTheme();
   const profile   = readProfile();
   const targetRole = profile.targetRole || 'your target role';
 
@@ -234,15 +240,15 @@ export default function CVOptimiserPage() {
 
   // ── Section input style ───────────────────────────────────────────────────────
   const inputStyle = {
-    width: '100%', background: '#0A0F0F', border: '1px solid #1E3030',
-    borderRadius: 8, padding: '9px 12px', color: '#E8F5F4', fontSize: 13,
+    width: '100%', background: c.bg, border: `1px solid ${c.brd}`,
+    borderRadius: 8, padding: '9px 12px', color: c.txt, fontSize: 13,
     outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.15s',
     boxSizing: 'border-box',
   };
   const textareaStyle = { ...inputStyle, resize: 'vertical', lineHeight: 1.6 };
 
   const onFocus = e => (e.target.style.borderColor = '#00D4C8');
-  const onBlur  = e => (e.target.style.borderColor = '#1E3030');
+  const onBlur  = e => (e.target.style.borderColor = c.brd);
 
   // ── AI button ─────────────────────────────────────────────────────────────────
   const AIBtn = ({ onClick, loading, label = 'AI Improve', disabled }) => (
@@ -261,15 +267,15 @@ export default function CVOptimiserPage() {
       `}</style>
 
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>CV Optimiser</h1>
-        <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>Build, analyse, and match your CV to job descriptions.</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: 0 }}>CV Optimiser</h1>
+        <p style={{ fontSize: 13, color: c.mut, marginTop: 4 }}>Build, analyse, and match your CV to job descriptions.</p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 2, background: '#111A1A', border: '1px solid #1E3030', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 2, background: c.card, border: `1px solid ${c.brd}`, borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
         {TABS.map((tab, i) => (
           <button key={tab} onClick={() => setActiveTab(i)}
-            style={{ fontSize: 13, fontWeight: activeTab === i ? 600 : 400, color: activeTab === i ? '#E8F5F4' : '#4A7A78', background: activeTab === i ? '#1E3030' : 'transparent', border: 'none', borderRadius: 7, padding: isMobile ? '6px 12px' : '6px 18px', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+            style={{ fontSize: 13, fontWeight: activeTab === i ? 600 : 400, color: activeTab === i ? c.txt : c.mut, background: activeTab === i ? c.brd : 'transparent', border: 'none', borderRadius: 7, padding: isMobile ? '6px 12px' : '6px 18px', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
             {tab}
           </button>
         ))}
@@ -283,9 +289,9 @@ export default function CVOptimiserPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Summary */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 18 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Professional Summary</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: c.mut2, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Professional Summary</p>
                 <AIBtn onClick={handleImproveSummary} loading={improving === 'summary'} disabled={!builder.summary.trim()} />
               </div>
               <textarea value={builder.summary} onChange={e => updateBuilder({ summary: e.target.value })}
@@ -295,9 +301,9 @@ export default function CVOptimiserPage() {
             </div>
 
             {/* Skills */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 18 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Skills</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: c.mut2, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Skills</p>
                 <AIBtn onClick={handleSuggestSkills} loading={improving === 'skills'} label="Suggest Skills" />
               </div>
               <textarea value={builder.skills} onChange={e => updateBuilder({ skills: e.target.value })}
@@ -307,26 +313,26 @@ export default function CVOptimiserPage() {
             </div>
 
             {/* Experience */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 18 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Experience</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: c.mut2, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Experience</p>
                 <button onClick={addExpEntry} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,212,200,0.1)', border: '1px solid rgba(0,212,200,0.2)', borderRadius: 6, padding: '4px 9px', color: '#00D4C8', fontSize: 12, cursor: 'pointer' }}>
                   <Plus size={12} /> Add
                 </button>
               </div>
               {builder.experience.map((exp, idx) => (
-                <div key={exp.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: idx < builder.experience.length - 1 ? '1px solid #1E3030' : 'none' }}>
+                <div key={exp.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: idx < builder.experience.length - 1 ? `1px solid ${c.brd}` : 'none' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                     <input value={exp.role} onChange={e => updateExp(exp.id, 'role', e.target.value)} onFocus={onFocus} onBlur={onBlur} placeholder="Role / Title" style={inputStyle} />
                     <input value={exp.company} onChange={e => updateExp(exp.id, 'company', e.target.value)} onFocus={onFocus} onBlur={onBlur} placeholder="Company" style={inputStyle} />
                   </div>
                   <input value={exp.period} onChange={e => updateExp(exp.id, 'period', e.target.value)} onFocus={onFocus} onBlur={onBlur} placeholder="Period e.g. Jan 2023 – Present" style={{ ...inputStyle, marginBottom: 8 }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <p style={{ fontSize: 11, color: '#4A7A78', margin: 0 }}>Bullet points (one per line)</p>
+                    <p style={{ fontSize: 11, color: c.mut, margin: 0 }}>Bullet points (one per line)</p>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <AIBtn onClick={() => handleImproveBullet(exp.id)} loading={improving === `bullet-${exp.id}`} disabled={!exp.bullets.trim()} />
                       {builder.experience.length > 1 && (
-                        <button onClick={() => removeExpEntry(exp.id)} style={{ background: 'none', border: 'none', color: '#4A7A78', cursor: 'pointer', display: 'flex', padding: 2 }}>
+                        <button onClick={() => removeExpEntry(exp.id)} style={{ background: 'none', border: 'none', color: c.mut, cursor: 'pointer', display: 'flex', padding: 2 }}>
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -339,9 +345,9 @@ export default function CVOptimiserPage() {
             </div>
 
             {/* Education */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 18 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Education</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: c.mut2, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Education</p>
                 <button onClick={addEduEntry} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,212,200,0.1)', border: '1px solid rgba(0,212,200,0.2)', borderRadius: 6, padding: '4px 9px', color: '#00D4C8', fontSize: 12, cursor: 'pointer' }}>
                   <Plus size={12} /> Add
                 </button>
@@ -353,7 +359,7 @@ export default function CVOptimiserPage() {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <input value={edu.year} onChange={e => updateEdu(edu.id, 'year', e.target.value)} onFocus={onFocus} onBlur={onBlur} placeholder="Year" style={{ ...inputStyle, width: 70 }} />
                     {builder.education.length > 1 && (
-                      <button onClick={() => removeEduEntry(edu.id)} style={{ background: 'none', border: 'none', color: '#4A7A78', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                      <button onClick={() => removeEduEntry(edu.id)} style={{ background: 'none', border: 'none', color: c.mut, cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -363,16 +369,16 @@ export default function CVOptimiserPage() {
             </div>
 
             {/* Projects */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 18 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Projects (optional)</p>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 18 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: c.mut2, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Projects (optional)</p>
               <textarea value={builder.projects} onChange={e => updateBuilder({ projects: e.target.value })}
                 onFocus={onFocus} onBlur={onBlur}
                 placeholder="Name | Description | Technologies used…" rows={3} style={textareaStyle} />
             </div>
 
             {/* Certifications */}
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 18 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#8ABAB8', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Certifications (optional)</p>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 18 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: c.mut2, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Certifications (optional)</p>
               <textarea value={builder.certifications} onChange={e => updateBuilder({ certifications: e.target.value })}
                 onFocus={onFocus} onBlur={onBlur}
                 placeholder="e.g. Google Data Analytics Certificate (2024)…" rows={2} style={textareaStyle} />
@@ -381,11 +387,11 @@ export default function CVOptimiserPage() {
 
           {/* Preview */}
           <div style={{ position: isMobile ? 'static' : 'sticky', top: 20, alignSelf: 'start' }}>
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>Live Preview</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>Live Preview</p>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(161,161,170,0.1)', border: '1px solid #264040', borderRadius: 6, padding: '5px 10px', color: copyDone ? '#34d399' : '#8ABAB8', fontSize: 12, cursor: 'pointer' }}>
+                  <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(161,161,170,0.1)', border: `1px solid #264040`, borderRadius: 6, padding: '5px 10px', color: copyDone ? '#34d399' : c.mut2, fontSize: 12, cursor: 'pointer' }}>
                     {copyDone ? <CheckCircle size={12} /> : <Copy size={12} />} {copyDone ? 'Copied!' : 'Copy'}
                   </button>
                   <button onClick={handleDownload} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(0,212,200,0.1)', border: '1px solid rgba(0,212,200,0.25)', borderRadius: 6, padding: '5px 10px', color: '#00D4C8', fontSize: 12, cursor: 'pointer' }}>
@@ -393,7 +399,7 @@ export default function CVOptimiserPage() {
                   </button>
                 </div>
               </div>
-              <pre style={{ fontFamily: 'monospace', fontSize: 11, color: '#C5E8E6', background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 8, padding: '14px 16px', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 520, overflowY: 'auto', lineHeight: 1.7, margin: 0 }}>
+              <pre style={{ fontFamily: 'monospace', fontSize: 11, color: '#C5E8E6', background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '14px 16px', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 520, overflowY: 'auto', lineHeight: 1.7, margin: 0 }}>
                 {buildPreviewText() || 'Start filling in sections on the left to see your CV preview here…'}
               </pre>
             </div>
@@ -404,8 +410,8 @@ export default function CVOptimiserPage() {
       {/* ── Tab 1: Upload & Analyse ─────────────────────────────────────────────── */}
       {activeTab === 1 && (
         <div style={{ maxWidth: 800 }}>
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 12px' }}>Paste your CV text</p>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Paste your CV text</p>
             <textarea value={cvText} onChange={e => setCvText(e.target.value)}
               onFocus={onFocus} onBlur={onBlur}
               placeholder="Copy and paste the full text of your CV here. The AI will score it across Content, Format, Keywords, and Length — and give you specific rewrite suggestions."
@@ -428,7 +434,7 @@ export default function CVOptimiserPage() {
           )}
 
           {analysing && (
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
               <Skeleton height={24} width="60%" style={{ marginBottom: 20 }} />
               {[100, 80, 65, 85].map((w, i) => (
                 <div key={i} style={{ marginBottom: 14 }}>
@@ -442,14 +448,14 @@ export default function CVOptimiserPage() {
           {analysisResult && !analysing && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Score card */}
-              <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+              <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
                   <div style={{ width: 76, height: 76, borderRadius: '50%', border: `4px solid ${scoreColor(analysisResult.total_score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 22, fontWeight: 800, color: scoreColor(analysisResult.total_score) }}>{analysisResult.total_score}</span>
                   </div>
                   <div>
-                    <p style={{ fontSize: 16, fontWeight: 700, color: '#E8F5F4', margin: '0 0 4px' }}>CV Score</p>
-                    <p style={{ fontSize: 12, color: '#4A7A78', margin: 0 }}>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: c.txt, margin: '0 0 4px' }}>CV Score</p>
+                    <p style={{ fontSize: 12, color: c.mut, margin: 0 }}>
                       {analysisResult.total_score >= 70 ? 'Strong CV — a few tweaks and you\'re ready to send.' : analysisResult.total_score >= 40 ? 'Good foundation. Apply the suggestions below to boost your score.' : 'Needs work. Use the fixes below to significantly improve your CV.'}
                     </p>
                   </div>
@@ -462,15 +468,15 @@ export default function CVOptimiserPage() {
 
               {/* Improvements */}
               {analysisResult.improvements?.length > 0 && (
-                <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 14px' }}>Suggested Fixes ({analysisResult.improvements.length})</p>
+                <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 14px' }}>Suggested Fixes ({analysisResult.improvements.length})</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {analysisResult.improvements.map((item, idx) => (
-                      <div key={idx} style={{ background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 8, padding: '12px 14px' }}>
+                      <div key={idx} style={{ background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '12px 14px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1 }}>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item.section}</span>
-                            <p style={{ fontSize: 12, color: '#8ABAB8', margin: '4px 0 6px', lineHeight: 1.5 }}>{item.issue}</p>
+                            <p style={{ fontSize: 12, color: c.mut2, margin: '4px 0 6px', lineHeight: 1.5 }}>{item.issue}</p>
                             {item.rewrite && (
                               <p style={{ fontSize: 12, color: '#C5E8E6', margin: 0, lineHeight: 1.6, background: 'rgba(0,212,200,0.05)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 6, padding: '8px 10px' }}>
                                 <span style={{ fontWeight: 600, color: '#00D4C8' }}>Suggested: </span>{item.rewrite}
@@ -494,9 +500,9 @@ export default function CVOptimiserPage() {
           )}
 
           {!analysisResult && !analysing && !analysisError && (
-            <div style={{ background: '#111A1A', border: '1px dashed #264040', borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
+            <div style={{ background: c.card, border: '1px dashed #264040', borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
               <FileText size={28} color="#264040" style={{ marginBottom: 12 }} />
-              <p style={{ fontSize: 13, color: '#4A7A78', margin: 0 }}>Paste your CV above and click <strong style={{ color: '#00D4C8' }}>Analyse CV</strong> to get a score and personalised fixes.</p>
+              <p style={{ fontSize: 13, color: c.mut, margin: 0 }}>Paste your CV above and click <strong style={{ color: '#00D4C8' }}>Analyse CV</strong> to get a score and personalised fixes.</p>
             </div>
           )}
         </div>
@@ -505,14 +511,14 @@ export default function CVOptimiserPage() {
       {/* ── Tab 2: JD Matcher ───────────────────────────────────────────────────── */}
       {activeTab === 2 && (
         <div style={{ maxWidth: 800 }}>
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 12px' }}>Your CV</p>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Your CV</p>
             <textarea value={jdCvText} onChange={e => setJdCvText(e.target.value)}
               onFocus={onFocus} onBlur={onBlur}
               placeholder="Paste your full CV text here…"
               rows={6} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box', marginBottom: 16 }} />
 
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 12px' }}>Job Description</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Job Description</p>
             <textarea value={jdText} onChange={e => setJdText(e.target.value)}
               onFocus={onFocus} onBlur={onBlur}
               placeholder="Paste the full job description here…"
@@ -535,7 +541,7 @@ export default function CVOptimiserPage() {
           )}
 
           {matching && (
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
               <Skeleton height={80} width={80} style={{ borderRadius: '50%', margin: '0 auto 20px' }} />
               <Skeleton height={14} width="50%" style={{ margin: '0 auto 20px' }} />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -547,19 +553,19 @@ export default function CVOptimiserPage() {
           {matchResult && !matching && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Match score */}
-              <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
                 <div style={{ width: 80, height: 80, borderRadius: '50%', border: `4px solid ${scoreColor(matchResult.match_score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ fontSize: 22, fontWeight: 800, color: scoreColor(matchResult.match_score) }}>{matchResult.match_score}%</span>
                 </div>
                 <div>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: '#E8F5F4', margin: '0 0 4px' }}>Match Score</p>
-                  <p style={{ fontSize: 12, color: '#4A7A78', margin: 0 }}>{matchResult.match_score >= 70 ? 'Strong match — your CV aligns well with this role.' : matchResult.match_score >= 40 ? 'Moderate match — add the missing keywords to improve your chances.' : 'Low match — significant gaps. Tailor your CV specifically for this role.'}</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: c.txt, margin: '0 0 4px' }}>Match Score</p>
+                  <p style={{ fontSize: 12, color: c.mut, margin: 0 }}>{matchResult.match_score >= 70 ? 'Strong match — your CV aligns well with this role.' : matchResult.match_score >= 40 ? 'Moderate match — add the missing keywords to improve your chances.' : 'Low match — significant gaps. Tailor your CV specifically for this role.'}</p>
                 </div>
               </div>
 
               {/* Keywords */}
-              <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 14px' }}>Keywords</p>
+              <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 14px' }}>Keywords</p>
                 {matchResult.present_keywords?.length > 0 && (
                   <div style={{ marginBottom: 14 }}>
                     <p style={{ fontSize: 11, fontWeight: 600, color: '#34d399', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Present ({matchResult.present_keywords.length})</p>
@@ -584,11 +590,11 @@ export default function CVOptimiserPage() {
 
               {/* Suggestions */}
               {matchResult.suggestions?.length > 0 && (
-                <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 14px' }}>How to improve your match</p>
+                <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 14px' }}>How to improve your match</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {matchResult.suggestions.map((s, i) => (
-                      <div key={i} style={{ background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 8, padding: '12px 14px' }}>
+                      <div key={i} style={{ background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '12px 14px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1 }}>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.section}</span>
@@ -610,9 +616,9 @@ export default function CVOptimiserPage() {
           )}
 
           {!matchResult && !matching && !matchError && (
-            <div style={{ background: '#111A1A', border: '1px dashed #264040', borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
+            <div style={{ background: c.card, border: '1px dashed #264040', borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
               <FileText size={28} color="#264040" style={{ marginBottom: 12 }} />
-              <p style={{ fontSize: 13, color: '#4A7A78', margin: 0 }}>Paste your CV and the job description, then click <strong style={{ color: '#00D4C8' }}>Match CV to JD</strong> to see how well you fit the role.</p>
+              <p style={{ fontSize: 13, color: c.mut, margin: 0 }}>Paste your CV and the job description, then click <strong style={{ color: '#00D4C8' }}>Match CV to JD</strong> to see how well you fit the role.</p>
             </div>
           )}
         </div>

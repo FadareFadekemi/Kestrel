@@ -5,11 +5,13 @@ import ScoreRing from '../components/UI/ScoreRing';
 import EmptyState from '../components/UI/EmptyState';
 import { sendEmail } from '../services/api';
 import useIsMobile from '../hooks/useIsMobile';
+import { useTheme } from '../context/ThemeContext';
 
 const STATUSES = ['All', 'Not Contacted', 'Contacted', 'Replied', 'Converted'];
 
 export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
   const isMobile = useIsMobile();
+  const { colors: c } = useTheme();
   const [search,         setSearch]         = useState('');
   const [statusFilter,   setStatusFilter]   = useState('All');
   const [sortBy,         setSortBy]         = useState('score');
@@ -78,22 +80,22 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* List pane */}
-      {showList && <div style={{ width: (!isMobile && selectedLead) ? 380 : '100%', borderRight: (!isMobile && selectedLead) ? '1px solid #1E3030' : 'none', display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'width 0.2s' }}>
+      {showList && <div style={{ width: (!isMobile && selectedLead) ? 380 : '100%', borderRight: (!isMobile && selectedLead) ? `1px solid ${c.brd}` : 'none', display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'width 0.2s' }}>
         {/* Toolbar */}
-        <div style={{ padding: isMobile ? '14px 14px 10px' : '20px 20px 12px', borderBottom: '1px solid #1E3030', flexShrink: 0 }}>
+        <div style={{ padding: isMobile ? '14px 14px 10px' : '20px 20px 12px', borderBottom: `1px solid ${c.brd}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Leads <span style={{ fontSize: 14, fontWeight: 400, color: '#4A7A78' }}>({filtered.length})</span></h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: c.txt, margin: 0 }}>Leads <span style={{ fontSize: 14, fontWeight: 400, color: c.mut }}>({filtered.length})</span></h2>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {/* Search */}
             <div style={{ flex: 1, position: 'relative' }}>
-              <Search size={13} color="#4A7A78" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <Search size={13} color={c.mut} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search companies..."
-                style={{ width: '100%', background: '#1E3030', border: '1px solid #264040', borderRadius: 7, padding: '7px 10px 7px 30px', color: '#E8F5F4', fontSize: 12, outline: 'none' }} />
+                style={{ width: '100%', background: c.brd, border: '1px solid #264040', borderRadius: 7, padding: '7px 10px 7px 30px', color: c.txt, fontSize: 12, outline: 'none' }} />
             </div>
             {/* Sort */}
             <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-              style={{ background: '#1E3030', border: '1px solid #264040', borderRadius: 7, padding: '7px 10px', color: '#C5E8E6', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+              style={{ background: c.brd, border: '1px solid #264040', borderRadius: 7, padding: '7px 10px', color: c.txt, fontSize: 12, outline: 'none', cursor: 'pointer' }}>
               <option value="score">Sort: Score</option>
               <option value="date">Sort: Date</option>
               <option value="company">Sort: Company</option>
@@ -104,8 +106,8 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
             {STATUSES.map(s => (
               <button key={s} onClick={() => setStatusFilter(s)} style={{
                 fontSize: 11, padding: '3px 10px', borderRadius: 20,
-                background: statusFilter === s ? '#00D4C8' : '#1E3030',
-                color:      statusFilter === s ? '#0A0F0F'  : '#4A7A78',
+                background: statusFilter === s ? '#00D4C8' : c.brd,
+                color:      statusFilter === s ? c.bg  : c.mut,
                 border: `1px solid ${statusFilter === s ? '#00D4C8' : '#264040'}`,
                 cursor: 'pointer', fontWeight: statusFilter === s ? 600 : 400,
               }}>{s}</button>
@@ -133,13 +135,13 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
                   <ScoreRing score={lead.score} size={40} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.company}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: c.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.company}</span>
                       <StatusBadge status={lead.status} />
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                      <span style={{ fontSize: 11, color: '#4A7A78' }}>{lead.industry}</span>
-                      <span style={{ fontSize: 11, color: '#264040' }}>·</span>
-                      <span style={{ fontSize: 11, color: '#4A7A78' }}>{lead.dateAdded}</span>
+                      <span style={{ fontSize: 11, color: c.mut }}>{lead.industry}</span>
+                      <span style={{ fontSize: 11, color: c.brd }}>·</span>
+                      <span style={{ fontSize: 11, color: c.mut }}>{lead.dateAdded}</span>
                     </div>
                   </div>
                   <ChevronRight size={14} color="#264040" />
@@ -158,15 +160,15 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 {isMobile && (
-                  <button onClick={() => setSelectedLead(null)} style={{ background: 'none', border: 'none', color: '#4A7A78', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
+                  <button onClick={() => setSelectedLead(null)} style={{ background: 'none', border: 'none', color: c.mut, cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}>
                     <ArrowLeft size={18} />
                   </button>
                 )}
-                <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: '#E8F5F4', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLead.company}</h2>
+                <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: c.txt, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLead.company}</h2>
                 {selectedLead.website && (
                   <a href={selectedLead.website.startsWith('http') ? selectedLead.website : `https://${selectedLead.website}`}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ color: '#4A7A78', display: 'flex', flexShrink: 0 }}>
+                    style={{ color: c.mut, display: 'flex', flexShrink: 0 }}>
                     <ExternalLink size={14} />
                   </a>
                 )}
@@ -174,7 +176,7 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {[selectedLead.industry, selectedLead.size, selectedLead.location, selectedLead.fundingStage]
                   .filter(Boolean).filter(v => v !== 'Unknown').map(v => (
-                    <span key={v} style={{ fontSize: 11, color: '#4A7A78', background: '#1E3030', border: '1px solid #264040', borderRadius: 5, padding: '2px 8px' }}>{v}</span>
+                    <span key={v} style={{ fontSize: 11, color: c.mut, background: c.brd, border: '1px solid #264040', borderRadius: 5, padding: '2px 8px' }}>{v}</span>
                   ))}
               </div>
             </div>
@@ -182,12 +184,12 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
               <select
                 value={selectedLead.status}
                 onChange={e => handleStatusChange(selectedLead, e.target.value)}
-                style={{ background: '#1E3030', border: '1px solid #264040', borderRadius: 7, padding: '6px 10px', color: '#C5E8E6', fontSize: 12, outline: 'none', cursor: 'pointer' }}
+                style={{ background: c.brd, border: '1px solid #264040', borderRadius: 7, padding: '6px 10px', color: c.txt, fontSize: 12, outline: 'none', cursor: 'pointer' }}
               >
                 {STATUSES.slice(1).map(s => <option key={s}>{s}</option>)}
               </select>
               {!isMobile && (
-                <button onClick={() => setSelectedLead(null)} style={{ background: '#1E3030', border: '1px solid #264040', borderRadius: 7, padding: '6px 8px', cursor: 'pointer', color: '#4A7A78', display: 'flex' }}>
+                <button onClick={() => setSelectedLead(null)} style={{ background: c.brd, border: '1px solid #264040', borderRadius: 7, padding: '6px 8px', cursor: 'pointer', color: c.mut, display: 'flex' }}>
                   <X size={14} />
                 </button>
               )}
@@ -202,29 +204,29 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
               { label: 'Timing',   val: selectedLead.timing,          color: '#34d399' },
               { label: 'Growth',   val: selectedLead.growthIndicators, color: '#60a5fa' },
             ].map(({ label, val, color }) => (
-              <div key={label} style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+              <div key={label} style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
                 <p style={{ fontSize: 20, fontWeight: 700, color, margin: '0 0 2px' }}>{val || 0}</p>
-                <p style={{ fontSize: 10, color: '#4A7A78', margin: 0 }}>{label}</p>
+                <p style={{ fontSize: 10, color: c.mut, margin: 0 }}>{label}</p>
               </div>
             ))}
           </div>
 
           {/* Contact */}
           <Section title="Contact">
-            <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '10px 14px' }}>
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '10px 14px' }}>
               {selectedLead.contactName && selectedLead.contactName !== 'Unknown' && (
                 <>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: '#E8F5F4', margin: '0 0 2px' }}>{selectedLead.contactName}</p>
-                  <p style={{ fontSize: 12, color: '#4A7A78', margin: '0 0 10px' }}>{selectedLead.contactTitle}</p>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: c.txt, margin: '0 0 2px' }}>{selectedLead.contactName}</p>
+                  <p style={{ fontSize: 12, color: c.mut, margin: '0 0 10px' }}>{selectedLead.contactTitle}</p>
                 </>
               )}
-              <label style={{ fontSize: 10, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.4px', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>Email address</label>
+              <label style={{ fontSize: 10, fontWeight: 600, color: c.mut, letterSpacing: '0.4px', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>Email address</label>
               <input
                 value={editEmail}
                 onChange={e => setEditEmail(e.target.value)}
                 onBlur={handleEmailBlur}
                 placeholder="contact@company.com"
-                style={{ width: '100%', background: '#0A0F0F', border: '1px solid #264040', borderRadius: 6, padding: '7px 10px', color: '#E8F5F4', fontSize: 12, outline: 'none' }}
+                style={{ width: '100%', background: c.bg, border: '1px solid #264040', borderRadius: 6, padding: '7px 10px', color: c.txt, fontSize: 12, outline: 'none' }}
                 onFocus={e => e.target.style.borderColor = '#00D4C8'}
               />
             </div>
@@ -233,7 +235,7 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
           {/* Summary */}
           {selectedLead.summary && (
             <Section title="Research Summary">
-              <p style={{ fontSize: 13, color: '#8ABAB8', lineHeight: 1.65, margin: 0 }}>{selectedLead.summary}</p>
+              <p style={{ fontSize: 13, color: c.mut2, lineHeight: 1.65, margin: 0 }}>{selectedLead.summary}</p>
             </Section>
           )}
 
@@ -243,7 +245,7 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
               {selectedLead.painPoints.map((p, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
                   <span style={{ color: '#ef4444', fontSize: 10, marginTop: 3 }}>•</span>
-                  <span style={{ fontSize: 12, color: '#8ABAB8', lineHeight: 1.5 }}>{p}</span>
+                  <span style={{ fontSize: 12, color: c.mut2, lineHeight: 1.5 }}>{p}</span>
                 </div>
               ))}
             </Section>
@@ -254,7 +256,7 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
             <Section title="Tech Stack">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {selectedLead.techStack.map(t => (
-                  <span key={t} style={{ fontSize: 11, color: '#c4b5fd', background: 'rgba(0,212,200,0.08)', border: '1px solid rgba(0,212,200,0.18)', borderRadius: 5, padding: '2px 8px' }}>{t}</span>
+                  <span key={t} style={{ fontSize: 11, color: '#c4b5fd', background: c.ad, border: `1px solid ${c.ab}`, borderRadius: 5, padding: '2px 8px' }}>{t}</span>
                 ))}
               </div>
             </Section>
@@ -272,11 +274,11 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
           {selectedLead.emails?.length > 0 && (
             <Section title="Email History">
               {selectedLead.emails.map((email, i) => (
-                <div key={i} style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+                <div key={i} style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#E8F5F4', margin: 0, flex: 1, marginRight: 8 }}>{email.subject}</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: c.txt, margin: 0, flex: 1, marginRight: 8 }}>{email.subject}</p>
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      <button onClick={() => handleCopyEmail(email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A7A78', display: 'flex', padding: 2 }}>
+                      <button onClick={() => handleCopyEmail(email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.mut, display: 'flex', padding: 2 }}>
                         {copied ? <Check size={13} color="#34d399" /> : <Copy size={13} />}
                       </button>
                       {selectedLead.contactEmail && (
@@ -289,7 +291,7 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
                             border: 'none', cursor: 'pointer',
                             background: sentEmailId === email.id
                               ? 'rgba(52,211,153,0.15)' : 'linear-gradient(135deg,#00D4C8,#00B8AD)',
-                            color: sentEmailId === email.id ? '#34d399' : '#0A0F0F',
+                            color: sentEmailId === email.id ? '#34d399' : c.bg,
                           }}
                         >
                           {sendingEmailId === email.id ? <Loader size={10} className="animate-spin-icon" />
@@ -305,7 +307,7 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
                     <EngagementPill label="Replied" active={email.replied} color="#34d399" />
                   </div>
                   {email.body && (
-                    <pre style={{ fontSize: 11, color: '#4A7A78', margin: '10px 0 0', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
+                    <pre style={{ fontSize: 11, color: c.mut, margin: '10px 0 0', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
                       {email.body.slice(0, 300)}{email.body.length > 300 ? '...' : ''}
                     </pre>
                   )}
@@ -327,21 +329,23 @@ export default function LeadsPage({ leads, onUpdateLead, setActivePage }) {
 }
 
 function Section({ title, children }) {
+  const { colors: c } = useTheme();
   return (
     <div style={{ marginBottom: 20 }}>
-      <p style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 8px' }}>{title}</p>
+      <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '0 0 8px' }}>{title}</p>
       {children}
     </div>
   );
 }
 
 function EngagementPill({ label, active, color }) {
+  const { colors: c } = useTheme();
   return (
     <span style={{
       fontSize: 10, padding: '2px 8px', borderRadius: 10,
-      background: active ? `${color}15` : '#1E3030',
-      color:      active ? color : '#264040',
-      border: `1px solid ${active ? `${color}30` : '#1E3030'}`,
+      background: active ? `${color}15` : c.brd,
+      color:      active ? color : c.brd,
+      border: `1px solid ${active ? `${color}30` : c.brd}`,
     }}>{label}</span>
   );
 }

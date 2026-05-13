@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Zap, ArrowRight, Building2, Target } from 'lucide-react';
 import useIsMobile from '../hooks/useIsMobile';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ModeSelectPage({ onSelect }) {
+  const { colors: c } = useTheme();
   const isMobile = useIsMobile();
   const [hovering, setHovering] = useState(null);
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#0A0F0F',
+      minHeight: '100vh', background: c.bg,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: isMobile ? '24px 16px' : 32,
       position: 'relative', overflow: 'hidden',
@@ -29,12 +31,12 @@ export default function ModeSelectPage({ onSelect }) {
             background: 'linear-gradient(135deg, #00D4C8, #00B8AD)',
             boxShadow: '0 0 28px rgba(0,212,200,0.3)', marginBottom: 16,
           }}>
-            <Zap size={24} color="#0A0F0F" fill="#0A0F0F" />
+            <Zap size={24} color={c.bg} fill={c.bg} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#E8F5F4', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: c.txt, margin: '0 0 6px', letterSpacing: '-0.5px' }}>
             What brings you to techcori?
           </h1>
-          <p style={{ fontSize: 14, color: '#4A7A78', margin: 0 }}>
+          <p style={{ fontSize: 14, color: c.mut, margin: 0 }}>
             Choose your path — you can switch anytime from Settings
           </p>
         </div>
@@ -88,13 +90,14 @@ export default function ModeSelectPage({ onSelect }) {
 }
 
 function ModeCard({ icon, iconBg, badge, title, description, features, buttonLabel, buttonStyle, accentColor = '#00D4C8', isHovered, onMouseEnter, onMouseLeave, onClick }) {
+  const { colors: c } = useTheme();
   return (
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        background: isHovered ? '#1c1c1f' : '#111A1A',
-        border: `1px solid ${isHovered ? accentColor + '40' : '#1E3030'}`,
+        background: isHovered ? '#1c1c1f' : c.card,
+        border: `1px solid ${isHovered ? accentColor + '40' : c.brd}`,
         borderRadius: 16, padding: 28,
         cursor: 'pointer', transition: 'all 0.2s ease',
         display: 'flex', flexDirection: 'column', gap: 20,
@@ -121,10 +124,10 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
           }}>
             {icon}
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>{title}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: c.txt, margin: 0 }}>{title}</h2>
         </div>
 
-        <p style={{ fontSize: 13, color: '#4A7A78', lineHeight: 1.65, margin: 0 }}>{description}</p>
+        <p style={{ fontSize: 13, color: c.mut, lineHeight: 1.65, margin: 0 }}>{description}</p>
       </div>
 
       {/* Features */}
@@ -132,7 +135,7 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
         {features.map(f => (
           <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: '#8ABAB8' }}>{f}</span>
+            <span style={{ fontSize: 12, color: c.mut2 }}>{f}</span>
           </li>
         ))}
       </ul>
@@ -146,7 +149,7 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           transition: 'all 0.15s',
           ...(buttonStyle === 'filled'
-            ? { background: 'linear-gradient(135deg, #00D4C8, #00B8AD)', color: '#0A0F0F', border: 'none' }
+            ? { background: 'linear-gradient(135deg, #00D4C8, #00B8AD)', color: c.bg, border: 'none' }
             : { background: 'transparent', color: accentColor, border: `1.5px solid ${accentColor}` }
           ),
         }}

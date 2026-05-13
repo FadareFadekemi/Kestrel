@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Save, CheckCircle, AlertCircle, User, Building, FileText, Zap, Globe } from 'lucide-react';
 import { authFetch } from '../services/authApi';
 import useIsMobile from '../hooks/useIsMobile';
+import { useTheme } from '../context/ThemeContext';
 
 export default function SettingsPage({ user, onUserUpdated }) {
+  const { colors: c } = useTheme();
   const isMobile = useIsMobile();
   const [form, setForm] = useState({
     name:               user?.name               || '',
@@ -44,11 +46,24 @@ export default function SettingsPage({ user, onUserUpdated }) {
 
   const isComplete = form.company_name.trim() && form.product_description.trim();
 
+  const inputStyle = {
+    width: '100%', background: c.card, border: `1px solid ${c.brd}`,
+    borderRadius: 8, padding: '9px 12px', color: c.txt,
+    fontSize: 13, outline: 'none', transition: 'border-color 0.15s',
+    fontFamily: 'inherit',
+  };
+
+  const labelStyle = {
+    fontSize: 11, fontWeight: 600, color: c.mut,
+    letterSpacing: '0.5px', textTransform: 'uppercase',
+    display: 'block', marginBottom: 6,
+  };
+
   return (
     <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', overflowY: 'auto', height: '100%', maxWidth: 720 }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Settings</h1>
-        <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: 0 }}>Settings</h1>
+        <p style={{ fontSize: 13, color: c.mut, marginTop: 4 }}>
           Your sender profile, used to personalise every outreach email techcori writes.
         </p>
       </div>
@@ -70,25 +85,29 @@ export default function SettingsPage({ user, onUserUpdated }) {
       )}
 
       <form onSubmit={handleSave}>
-        <Section title="Your Identity" icon={<User size={14} color="#00D4C8" />}>
+        <Section title="Your Identity" icon={<User size={14} color="#00D4C8" />} colors={c}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <Field label="Your Name" placeholder="e.g. Sarah Johnson"
-              value={form.name} onChange={v => set('name', v)} />
+              value={form.name} onChange={v => set('name', v)}
+              labelStyle={labelStyle} inputStyle={inputStyle} colors={c} />
             <Field label="Your Title" placeholder="e.g. Head of Sales"
-              value={form.sender_title} onChange={v => set('sender_title', v)} />
+              value={form.sender_title} onChange={v => set('sender_title', v)}
+              labelStyle={labelStyle} inputStyle={inputStyle} colors={c} />
           </div>
         </Section>
 
-        <Section title="Your Company" icon={<Building size={14} color="#00D4C8" />}>
+        <Section title="Your Company" icon={<Building size={14} color="#00D4C8" />} colors={c}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 14 }}>
             <Field label="Company Name *" placeholder="e.g. Acme Inc."
-              value={form.company_name} onChange={v => set('company_name', v)} required />
+              value={form.company_name} onChange={v => set('company_name', v)} required
+              labelStyle={labelStyle} inputStyle={inputStyle} colors={c} />
             <Field label="Website" placeholder="e.g. acme.com"
-              value={form.website} onChange={v => set('website', v)} />
+              value={form.website} onChange={v => set('website', v)}
+              labelStyle={labelStyle} inputStyle={inputStyle} colors={c} />
           </div>
         </Section>
 
-        <Section title="What You Sell" icon={<FileText size={14} color="#00D4C8" />}>
+        <Section title="What You Sell" icon={<FileText size={14} color="#00D4C8" />} colors={c}>
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Product / Service Description *</label>
             <textarea
@@ -98,7 +117,7 @@ export default function SettingsPage({ user, onUserUpdated }) {
               rows={5} required
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
             />
-            <p style={{ fontSize: 11, color: '#4A7A78', marginTop: 5 }}>
+            <p style={{ fontSize: 11, color: c.mut, marginTop: 5 }}>
               Tip: include your target customer, the problem you solve, and a concrete result.
             </p>
           </div>
@@ -106,21 +125,22 @@ export default function SettingsPage({ user, onUserUpdated }) {
             label="One-line Value Proposition"
             placeholder="e.g. 3x more pipeline in 60 days, guaranteed."
             value={form.value_proposition} onChange={v => set('value_proposition', v)}
+            labelStyle={labelStyle} inputStyle={inputStyle} colors={c}
           />
         </Section>
 
         {/* Preview */}
         {form.company_name && form.product_description && (
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 10, padding: '14px 16px', marginBottom: 24 }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
               <Zap size={12} color="#00D4C8" />
               <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email preview context</span>
             </div>
-            <p style={{ fontSize: 12, color: '#4A7A78', margin: 0, lineHeight: 1.6 }}>
-              Emails will be written as <strong style={{ color: '#8ABAB8' }}>{form.name || '{{senderName}}'}</strong>
-              {form.sender_title && <>, <strong style={{ color: '#8ABAB8' }}>{form.sender_title}</strong></>}
-              {' '}at <strong style={{ color: '#8ABAB8' }}>{form.company_name}</strong>, pitching:
-              <em style={{ color: '#8ABAB8' }}> "{form.product_description.slice(0, 120)}{form.product_description.length > 120 ? '…' : ''}"</em>
+            <p style={{ fontSize: 12, color: c.mut, margin: 0, lineHeight: 1.6 }}>
+              Emails will be written as <strong style={{ color: c.mut2 }}>{form.name || '{{senderName}}'}</strong>
+              {form.sender_title && <>, <strong style={{ color: c.mut2 }}>{form.sender_title}</strong></>}
+              {' '}at <strong style={{ color: c.mut2 }}>{form.company_name}</strong>, pitching:
+              <em style={{ color: c.mut2 }}> "{form.product_description.slice(0, 120)}{form.product_description.length > 120 ? '…' : ''}"</em>
             </p>
           </div>
         )}
@@ -133,8 +153,8 @@ export default function SettingsPage({ user, onUserUpdated }) {
         )}
 
         <button type="submit" disabled={saving} style={{
-          background: saving ? '#1E3030' : 'linear-gradient(135deg, #00D4C8, #00B8AD)',
-          color: saving ? '#4A7A78' : '#0A0F0F',
+          background: saving ? c.brd : 'linear-gradient(135deg, #00D4C8, #00B8AD)',
+          color: saving ? c.mut : c.bg,
           border: 'none', borderRadius: 10, padding: '10px 24px',
           fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
           display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s',
@@ -151,32 +171,19 @@ export default function SettingsPage({ user, onUserUpdated }) {
   );
 }
 
-function Section({ title, icon, children }) {
+function Section({ title, icon, children, colors: c }) {
   return (
     <div style={{ marginBottom: 28 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid #1c1c1e' }}>
         {icon}
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4' }}>{title}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: c.txt }}>{title}</span>
       </div>
       {children}
     </div>
   );
 }
 
-const inputStyle = {
-  width: '100%', background: '#111A1A', border: '1px solid #1E3030',
-  borderRadius: 8, padding: '9px 12px', color: '#E8F5F4',
-  fontSize: 13, outline: 'none', transition: 'border-color 0.15s',
-  fontFamily: 'inherit',
-};
-
-const labelStyle = {
-  fontSize: 11, fontWeight: 600, color: '#4A7A78',
-  letterSpacing: '0.5px', textTransform: 'uppercase',
-  display: 'block', marginBottom: 6,
-};
-
-function Field({ label, placeholder, value, onChange, required }) {
+function Field({ label, placeholder, value, onChange, required, labelStyle, inputStyle, colors: c }) {
   return (
     <div>
       <label style={labelStyle}>{label}</label>
@@ -185,7 +192,7 @@ function Field({ label, placeholder, value, onChange, required }) {
         placeholder={placeholder} required={required}
         style={inputStyle}
         onFocus={e => e.target.style.borderColor = '#00D4C8'}
-        onBlur={e  => e.target.style.borderColor = '#1E3030'}
+        onBlur={e  => e.target.style.borderColor = c.brd}
       />
     </div>
   );

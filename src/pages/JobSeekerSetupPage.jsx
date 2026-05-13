@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Zap, Target, ArrowRight, Upload, CheckCircle, X } from 'lucide-react';
 import useIsMobile from '../hooks/useIsMobile';
+import { useTheme } from '../context/ThemeContext';
 
 const JS_PROFILE_KEY = 'kestrel_jobseeker_profile';
 
@@ -30,6 +31,7 @@ function getProgress(form) {
 }
 
 export default function JobSeekerSetupPage({ user, onComplete }) {
+  const { colors: c } = useTheme();
   const isMobile = useIsMobile();
   const fileRef  = useRef(null);
 
@@ -77,9 +79,28 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
 
   const isValid = form.fullName.trim() && form.targetRole.trim() && form.education && form.experience;
 
+  const labelStyle = {
+    fontSize: 11, fontWeight: 600, color: c.mut,
+    letterSpacing: '0.5px', textTransform: 'uppercase',
+    display: 'block', marginBottom: 6,
+  };
+
+  const inputStyle = {
+    width: '100%', background: c.bg, border: `1px solid ${c.brd}`,
+    borderRadius: 8, padding: '9px 12px', color: c.txt,
+    fontSize: 13, outline: 'none', transition: 'border-color 0.15s', fontFamily: 'inherit',
+  };
+
+  const selectStyle = {
+    width: '100%', background: c.bg, border: `1px solid ${c.brd}`,
+    borderRadius: 8, padding: '9px 12px', color: c.txt,
+    fontSize: 13, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+    transition: 'border-color 0.15s',
+  };
+
   return (
     <div style={{
-      minHeight: '100vh', background: '#0A0F0F',
+      minHeight: '100vh', background: c.bg,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: isMobile ? '24px 16px' : 40,
       position: 'relative', overflow: 'hidden',
@@ -101,10 +122,10 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
           }}>
             <Target size={22} color="#fff" />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: '0 0 6px', letterSpacing: '-0.4px' }}>
             Set up your profile
           </h1>
-          <p style={{ fontSize: 13, color: '#4A7A78', margin: 0 }}>
+          <p style={{ fontSize: 13, color: c.mut, margin: 0 }}>
             techcori uses this to find the right companies and write emails as you.
           </p>
         </div>
@@ -112,10 +133,10 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
         {/* Progress bar */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#4A7A78', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Profile completeness</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: c.mut, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Profile completeness</span>
             <span style={{ fontSize: 11, fontWeight: 700, color: progress >= 80 ? '#34d399' : '#00D4C8' }}>{progress}%</span>
           </div>
-          <div style={{ height: 6, background: '#1E3030', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: c.brd, borderRadius: 99, overflow: 'hidden' }}>
             <div style={{
               height: '100%',
               width: `${progress}%`,
@@ -128,14 +149,15 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
 
         {/* Card */}
         <div style={{
-          background: '#111A1A', border: '1px solid #1E3030', borderRadius: 16,
+          background: c.card, border: `1px solid ${c.brd}`, borderRadius: 16,
           padding: isMobile ? 20 : 28, boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
             {/* Full name */}
             <Field label="Full Name *" placeholder="e.g. Amara Okonkwo"
-              value={form.fullName} onChange={v => set('fullName', v)} />
+              value={form.fullName} onChange={v => set('fullName', v)}
+              labelStyle={labelStyle} inputStyle={inputStyle} />
 
             {/* Target role with suggestions */}
             <div style={{ position: 'relative' }}>
@@ -152,7 +174,7 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
               {showSuggestions && filteredSuggestions.length > 0 && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
-                  background: '#1c1c1f', border: '1px solid #1E3030', borderRadius: 8,
+                  background: '#1c1c1f', border: `1px solid ${c.brd}`, borderRadius: 8,
                   overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 }}>
                   {filteredSuggestions.map(s => (
@@ -160,9 +182,9 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
                       style={{
                         width: '100%', textAlign: 'left', padding: '9px 14px',
                         background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: 13, color: '#C5E8E6',
+                        fontSize: 13, color: c.txt,
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#1E3030'}
+                      onMouseEnter={e => e.currentTarget.style.background = c.brd}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >{s}</button>
                   ))}
@@ -176,7 +198,7 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
                 <label style={labelStyle}>Highest Education Level *</label>
                 <select value={form.education} onChange={e => set('education', e.target.value)} style={selectStyle}
                   onFocus={e => e.target.style.borderColor = '#00D4C8'}
-                  onBlur={e  => e.target.style.borderColor = '#1E3030'}>
+                  onBlur={e  => e.target.style.borderColor = c.brd}>
                   {EDUCATION_OPTIONS.map(o => <option key={o} value={o}>{o || 'Select level...'}</option>)}
                 </select>
               </div>
@@ -184,7 +206,7 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
                 <label style={labelStyle}>Years of Experience *</label>
                 <select value={form.experience} onChange={e => set('experience', e.target.value)} style={selectStyle}
                   onFocus={e => e.target.style.borderColor = '#00D4C8'}
-                  onBlur={e  => e.target.style.borderColor = '#1E3030'}>
+                  onBlur={e  => e.target.style.borderColor = c.brd}>
                   {EXPERIENCE_OPTIONS.map(o => <option key={o} value={o}>{o || 'Select experience...'}</option>)}
                 </select>
               </div>
@@ -192,7 +214,8 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
 
             {/* Location */}
             <Field label="Location (City, Country)" placeholder="e.g. Lagos, Nigeria"
-              value={form.location} onChange={v => set('location', v)} />
+              value={form.location} onChange={v => set('location', v)}
+              labelStyle={labelStyle} inputStyle={inputStyle} />
 
             {/* CV Upload */}
             <div>
@@ -212,22 +235,22 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
                     <span style={{ fontSize: 12, color: '#34d399', fontWeight: 500 }}>{form.cvFileName}</span>
                   </div>
                   <button onClick={() => { set('cvFileName', ''); if (fileRef.current) fileRef.current.value = ''; }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A7A78', display: 'flex', padding: 0 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.mut, display: 'flex', padding: 0 }}>
                     <X size={14} />
                   </button>
                 </div>
               ) : (
                 <button onClick={() => fileRef.current?.click()} style={{
-                  width: '100%', background: '#0A0F0F', border: '2px dashed #1E3030',
+                  width: '100%', background: c.bg, border: `2px dashed ${c.brd}`,
                   borderRadius: 8, padding: '16px', cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   transition: 'border-color 0.15s',
                 }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = '#264040'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = '#1E3030'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = c.brd}
                 >
-                  <Upload size={18} color="#4A7A78" />
-                  <span style={{ fontSize: 12, color: '#4A7A78' }}>Click to upload PDF or Word document</span>
+                  <Upload size={18} color={c.mut} />
+                  <span style={{ fontSize: 12, color: c.mut }}>Click to upload PDF or Word document</span>
                 </button>
               )}
               {cvError && <p style={{ fontSize: 11, color: '#f87171', marginTop: 4 }}>{cvError}</p>}
@@ -241,14 +264,14 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
           <div style={{ display: 'flex', gap: 12, marginTop: 28, flexDirection: isMobile ? 'column-reverse' : 'row' }}>
             <button onClick={onComplete} style={{
               padding: '11px 20px', borderRadius: 10,
-              background: 'transparent', color: '#4A7A78',
-              border: '1px solid #1E3030', fontSize: 13, fontWeight: 500,
+              background: 'transparent', color: c.mut,
+              border: `1px solid ${c.brd}`, fontSize: 13, fontWeight: 500,
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}>Skip for now</button>
             <button onClick={handleSave} disabled={!isValid} style={{
               flex: 1, padding: '11px 0', borderRadius: 10,
-              background: isValid ? 'linear-gradient(135deg, #00D4C8, #7c3aed)' : '#1E3030',
-              color: isValid ? '#fff' : '#4A7A78',
+              background: isValid ? 'linear-gradient(135deg, #00D4C8, #7c3aed)' : c.brd,
+              color: isValid ? '#fff' : c.mut,
               border: 'none', fontSize: 14, fontWeight: 700,
               cursor: isValid ? 'pointer' : 'not-allowed',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -259,7 +282,7 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
           </div>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: '#1E3030', marginTop: 16 }}>
+        <p style={{ textAlign: 'center', fontSize: 11, color: c.brd, marginTop: 16 }}>
           Your data stays on this device until you choose to sync it.
         </p>
       </div>
@@ -267,33 +290,15 @@ export default function JobSeekerSetupPage({ user, onComplete }) {
   );
 }
 
-const labelStyle = {
-  fontSize: 11, fontWeight: 600, color: '#4A7A78',
-  letterSpacing: '0.5px', textTransform: 'uppercase',
-  display: 'block', marginBottom: 6,
-};
-
-const inputStyle = {
-  width: '100%', background: '#0A0F0F', border: '1px solid #1E3030',
-  borderRadius: 8, padding: '9px 12px', color: '#E8F5F4',
-  fontSize: 13, outline: 'none', transition: 'border-color 0.15s', fontFamily: 'inherit',
-};
-
-const selectStyle = {
-  width: '100%', background: '#0A0F0F', border: '1px solid #1E3030',
-  borderRadius: 8, padding: '9px 12px', color: '#E8F5F4',
-  fontSize: 13, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
-  transition: 'border-color 0.15s',
-};
-
-function Field({ label, placeholder, value, onChange, required }) {
+function Field({ label, placeholder, value, onChange, required, labelStyle, inputStyle }) {
+  const { colors: c } = useTheme();
   return (
     <div>
       <label style={labelStyle}>{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)}
         placeholder={placeholder} required={required} style={inputStyle}
         onFocus={e => e.target.style.borderColor = '#00D4C8'}
-        onBlur={e  => e.target.style.borderColor = '#1E3030'} />
+        onBlur={e  => e.target.style.borderColor = c.brd} />
     </div>
   );
 }

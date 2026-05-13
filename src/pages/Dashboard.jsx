@@ -5,6 +5,7 @@ import StatusBadge from '../components/UI/StatusBadge';
 import ScoreRing from '../components/UI/ScoreRing';
 import EmptyState from '../components/UI/EmptyState';
 import useIsMobile from '../hooks/useIsMobile';
+import { useTheme } from '../context/ThemeContext';
 
 // Build activity data from saved leads or use seeded data when none exist
 function buildActivityData(leads) {
@@ -33,10 +34,11 @@ function buildActivityData(leads) {
 const TONE_COLORS = { Consultative: '#00D4C8', Casual: '#60a5fa', Formal: '#00D4C8', Aggressive: '#f87171' };
 
 const CustomTooltip = ({ active, payload, label }) => {
+  const { colors: c } = useTheme();
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
-      <p style={{ color: '#4A7A78', margin: '0 0 4px' }}>{label}</p>
+    <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+      <p style={{ color: c.mut, margin: '0 0 4px' }}>{label}</p>
       {payload.map(p => (
         <p key={p.name} style={{ color: p.color, margin: '2px 0' }}>{p.name}: <strong>{p.value}</strong></p>
       ))}
@@ -46,6 +48,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function Dashboard({ leads, setActivePage }) {
   const isMobile = useIsMobile();
+  const { colors: c } = useTheme();
   const stats = useMemo(() => {
     const total    = leads.length;
     const sent     = leads.reduce((a, l) => a + (l.emails?.length || 0), 0);
@@ -75,8 +78,8 @@ export default function Dashboard({ leads, setActivePage }) {
   return (
     <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', overflowY: 'auto', height: '100%' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Dashboard</h1>
-        <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>Your outreach overview</p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: 0 }}>Dashboard</h1>
+        <p style={{ fontSize: 13, color: c.mut, marginTop: 4 }}>Your outreach overview</p>
       </div>
 
       {/* Stat cards */}
@@ -90,8 +93,8 @@ export default function Dashboard({ leads, setActivePage }) {
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 16, marginBottom: 28 }}>
         {/* Activity chart */}
-        <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: '20px 20px 16px' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 20px' }}>Outreach Activity, Last 30 Days</p>
+        <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: '20px 20px 16px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 20px' }}>Outreach Activity, Last 30 Days</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={activityData}>
               <defs>
@@ -104,10 +107,10 @@ export default function Dashboard({ leads, setActivePage }) {
                   <stop offset="95%" stopColor="#34d399" stopOpacity={0}    />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E3030" />
-              <XAxis dataKey="date" tick={{ fill: '#4A7A78', fontSize: 10 }} tickLine={false} axisLine={false}
+              <CartesianGrid strokeDasharray="3 3" stroke={c.brd} />
+              <XAxis dataKey="date" tick={{ fill: c.mut, fontSize: 10 }} tickLine={false} axisLine={false}
                 interval={Math.floor(activityData.length / 6)} />
-              <YAxis tick={{ fill: '#4A7A78', fontSize: 10 }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fill: c.mut, fontSize: 10 }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="emails"  name="Emails"  stroke="#00D4C8" strokeWidth={2} fill="url(#emailGrad)" />
               <Area type="monotone" dataKey="replies" name="Replies" stroke="#34d399" strokeWidth={2} fill="url(#replyGrad)" />
@@ -116,16 +119,16 @@ export default function Dashboard({ leads, setActivePage }) {
         </div>
 
         {/* Tone breakdown */}
-        <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: '20px 20px 16px' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: '0 0 20px' }}>Top Email Tones</p>
+        <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: '20px 20px 16px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 20px' }}>Top Email Tones</p>
           {toneBreakdown.length === 0 ? (
             <p style={{ fontSize: 12, color: '#264040', textAlign: 'center', padding: '40px 0' }}>No emails yet</p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={toneBreakdown} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E3030" horizontal={false} />
-                <XAxis type="number" tick={{ fill: '#4A7A78', fontSize: 10 }} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="tone" tick={{ fill: '#8ABAB8', fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
+                <CartesianGrid strokeDasharray="3 3" stroke={c.brd} horizontal={false} />
+                <XAxis type="number" tick={{ fill: c.mut, fontSize: 10 }} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="tone" tick={{ fill: c.mut2, fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="count" name="Emails" radius={[0, 4, 4, 0]}>
                   {toneBreakdown.map((entry, i) => (
@@ -139,9 +142,9 @@ export default function Dashboard({ leads, setActivePage }) {
       </div>
 
       {/* Recent leads */}
-      <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #1E3030' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>Recent Leads</p>
+      <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${c.brd}` }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>Recent Leads</p>
           <button onClick={() => setActivePage('Leads')} style={{ fontSize: 12, color: '#00D4C8', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
             View all <ArrowUpRight size={12} />
           </button>
@@ -164,7 +167,7 @@ export default function Dashboard({ leads, setActivePage }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <ScoreRing score={lead.score} size={32} />
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 500, color: '#E8F5F4', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.company}</p>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: c.txt, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.company}</p>
                     <StatusBadge status={lead.status} />
                   </div>
                 </div>
@@ -177,9 +180,9 @@ export default function Dashboard({ leads, setActivePage }) {
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1E3030' }}>
+              <tr style={{ borderBottom: `1px solid ${c.brd}` }}>
                 {['Company', 'Score', 'Status', 'Date Added', 'Actions'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 600, color: '#4A7A78', letterSpacing: '0.5px' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 600, color: c.mut, letterSpacing: '0.5px' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -188,15 +191,15 @@ export default function Dashboard({ leads, setActivePage }) {
                 <tr key={lead.id} style={{ borderBottom: i < recentLeads.length - 1 ? '1px solid #1c1c1e' : 'none' }}>
                   <td style={{ padding: '12px 20px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#E8F5F4' }}>{lead.company}</span>
-                      <span style={{ fontSize: 11, color: '#4A7A78' }}>{lead.industry}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: c.txt }}>{lead.company}</span>
+                      <span style={{ fontSize: 11, color: c.mut }}>{lead.industry}</span>
                     </div>
                   </td>
                   <td style={{ padding: '12px 20px' }}>
                     <ScoreRing score={lead.score} size={36} />
                   </td>
                   <td style={{ padding: '12px 20px' }}><StatusBadge status={lead.status} /></td>
-                  <td style={{ padding: '12px 20px', fontSize: 12, color: '#4A7A78' }}>{lead.dateAdded}</td>
+                  <td style={{ padding: '12px 20px', fontSize: 12, color: c.mut }}>{lead.dateAdded}</td>
                   <td style={{ padding: '12px 20px' }}>
                     <button onClick={() => setActivePage('Leads')} style={{ fontSize: 11, color: '#00D4C8', background: 'none', border: 'none', cursor: 'pointer' }}>
                       View →
@@ -213,14 +216,15 @@ export default function Dashboard({ leads, setActivePage }) {
 }
 
 function StatCard({ icon, label, value, delta }) {
+  const { colors: c } = useTheme();
   return (
-    <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: '16px 20px' }}>
+    <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: '16px 20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div style={{ width: 36, height: 36, background: '#1E3030', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+        <div style={{ width: 36, height: 36, background: c.brd, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
         <span style={{ fontSize: 11, color: '#34d399', background: 'rgba(52,211,153,0.1)', borderRadius: 4, padding: '2px 6px' }}>{delta}</span>
       </div>
-      <p style={{ fontSize: 24, fontWeight: 700, color: '#E8F5F4', margin: '0 0 2px' }}>{value}</p>
-      <p style={{ fontSize: 12, color: '#4A7A78', margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 24, fontWeight: 700, color: c.txt, margin: '0 0 2px' }}>{value}</p>
+      <p style={{ fontSize: 12, color: c.mut, margin: 0 }}>{label}</p>
     </div>
   );
 }

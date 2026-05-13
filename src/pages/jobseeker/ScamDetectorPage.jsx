@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Shield, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronUp, Loader, Zap } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
 import { detectScam } from '../../services/jsApi';
+import { useTheme } from '../../context/ThemeContext';
 
 const RED_FLAGS = [
   { flag: 'Upfront payment required', detail: 'Any job that asks you to pay for training, equipment, or a "starter kit" is a scam.' },
@@ -37,6 +38,7 @@ const STATIC_RISK = {
 
 export default function ScamDetectorPage() {
   const isMobile = useIsMobile();
+  const { colors: c } = useTheme();
   const [jobText,   setJobText]   = useState('');
   const [expanded,  setExpanded]  = useState(null);
   const [loading,   setLoading]   = useState(false);
@@ -69,8 +71,8 @@ export default function ScamDetectorPage() {
   return (
     <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', overflowY: 'auto', height: '100%' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#E8F5F4', margin: 0 }}>Scam Detector</h1>
-        <p style={{ fontSize: 13, color: '#4A7A78', marginTop: 4 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: c.txt, margin: 0 }}>Scam Detector</h1>
+        <p style={{ fontSize: 13, color: c.mut, marginTop: 4 }}>
           Paste a job listing or recruiter message — AI will analyse it for scam signals.
         </p>
       </div>
@@ -79,21 +81,21 @@ export default function ScamDetectorPage() {
 
         {/* Checker */}
         <div>
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Shield size={16} color="#00D4C8" />
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>Paste job listing or message</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>Paste job listing or message</p>
             </div>
             <textarea value={jobText} onChange={e => { setJobText(e.target.value); setAiResult(null); setAiError(''); }}
               placeholder="Paste the full job description, WhatsApp message, or recruiter email here..."
               rows={8}
-              style={{ width: '100%', background: '#0A0F0F', border: '1px solid #1E3030', borderRadius: 8, padding: '10px 12px', color: '#E8F5F4', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, transition: 'border-color 0.15s', boxSizing: 'border-box' }}
+              style={{ width: '100%', background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '10px 12px', color: c.txt, fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, transition: 'border-color 0.15s', boxSizing: 'border-box' }}
               onFocus={e => (e.target.style.borderColor = '#00D4C8')}
-              onBlur={e  => (e.target.style.borderColor = '#1E3030')} />
+              onBlur={e  => (e.target.style.borderColor = c.brd)} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
               <span style={{ fontSize: 11, color: '#264040' }}>{jobText.length} characters</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                {jobText && <button onClick={() => { setJobText(''); setAiResult(null); setAiError(''); }} style={{ fontSize: 11, color: '#4A7A78', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear</button>}
+                {jobText && <button onClick={() => { setJobText(''); setAiResult(null); setAiError(''); }} style={{ fontSize: 11, color: c.mut, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear</button>}
                 <button onClick={handleDetect} disabled={loading || jobText.trim().length < 20}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,212,200,0.12)', border: '1px solid rgba(0,212,200,0.25)', borderRadius: 7, padding: '6px 12px', color: '#00D4C8', fontSize: 12, fontWeight: 600, cursor: (loading || jobText.trim().length < 20) ? 'not-allowed' : 'pointer', opacity: jobText.trim().length < 20 ? 0.5 : 1 }}>
                   {loading ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={12} />}
@@ -138,7 +140,7 @@ export default function ScamDetectorPage() {
                   <span style={{ fontSize: 11, color: cfg.color, opacity: 0.6, marginLeft: 'auto' }}>keyword check</span>
                 </div>
                 <p style={{ fontSize: 12, color: cfg.color, margin: 0, lineHeight: 1.6, opacity: 0.85 }}>{cfg.text}</p>
-                {!aiResult && <p style={{ fontSize: 11, color: '#4A7A78', margin: '8px 0 0' }}>Click <strong style={{ color: '#00D4C8' }}>AI Analyse</strong> for a deeper assessment.</p>}
+                {!aiResult && <p style={{ fontSize: 11, color: c.mut, margin: '8px 0 0' }}>Click <strong style={{ color: '#00D4C8' }}>AI Analyse</strong> for a deeper assessment.</p>}
               </div>
             );
           })()}
@@ -146,35 +148,35 @@ export default function ScamDetectorPage() {
 
         {/* Reference panels */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <XCircle size={15} color="#f87171" />
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>Red flags to watch</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>Red flags to watch</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {RED_FLAGS.map(({ flag, detail }, i) => (
                 <div key={i}>
                   <button onClick={() => setExpanded(expanded === i ? null : i)}
-                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', borderBottom: '1px solid #1c1c1e' }}>
+                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', borderBottom: `1px solid ${c.brd}` }}>
                     <span style={{ fontSize: 12, color: '#fca5a5', textAlign: 'left' }}>{flag}</span>
-                    {expanded === i ? <ChevronUp size={13} color="#4A7A78" /> : <ChevronDown size={13} color="#4A7A78" />}
+                    {expanded === i ? <ChevronUp size={13} color={c.mut} /> : <ChevronDown size={13} color={c.mut} />}
                   </button>
-                  {expanded === i && <p style={{ fontSize: 12, color: '#4A7A78', margin: '6px 0 4px', lineHeight: 1.5 }}>{detail}</p>}
+                  {expanded === i && <p style={{ fontSize: 12, color: c.mut, margin: '6px 0 4px', lineHeight: 1.5 }}>{detail}</p>}
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ background: '#111A1A', border: '1px solid #1E3030', borderRadius: 12, padding: 20 }}>
+          <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <CheckCircle size={15} color="#34d399" />
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>Signs of a legitimate job</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>Signs of a legitimate job</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {GREEN_FLAGS.map((g, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#34d399', flexShrink: 0, marginTop: 6 }} />
-                  <span style={{ fontSize: 12, color: '#8ABAB8', lineHeight: 1.5 }}>{g}</span>
+                  <span style={{ fontSize: 12, color: c.mut2, lineHeight: 1.5 }}>{g}</span>
                 </div>
               ))}
             </div>

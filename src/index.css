@@ -2,12 +2,37 @@
 
 * { box-sizing: border-box; }
 
+/* ── Theme CSS variables ──────────────────────────────────────────────────── */
+:root {
+  --bg:       #0A0F0F;
+  --card:     #111A1A;
+  --brd:      #1E3030;
+  --txt:      #E8F5F4;
+  --mut:      #4A7A78;
+  --mut2:     #8ABAB8;
+  --sb-track: #111A1A;
+  --sb-thumb: #264040;
+  --sb-hover: #4A7A78;
+}
+[data-theme="light"] {
+  --bg:       #F2F9F8;
+  --card:     #FFFFFF;
+  --brd:      #C8E0DE;
+  --txt:      #0D1F1E;
+  --mut:      #4A7A78;
+  --mut2:     #2A5A58;
+  --sb-track: #E8F3F2;
+  --sb-thumb: #B0D0CE;
+  --sb-hover: #4A7A78;
+}
+
 body {
-  background-color: #0A0F0F;
-  color: #E8F5F4;
+  background-color: var(--bg);
+  color: var(--txt);
   font-family: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   margin: 0;
   padding: 0;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -26,9 +51,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #111A1A; }
-::-webkit-scrollbar-thumb { background: #264040; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #4A7A78; }
+::-webkit-scrollbar-track { background: var(--sb-track); }
+::-webkit-scrollbar-thumb { background: var(--sb-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sb-hover); }
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 6px rgba(0,212,200,0.4); }

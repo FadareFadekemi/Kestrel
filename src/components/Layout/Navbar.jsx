@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { ChevronDown, Zap, LogOut, Settings, Menu, X, ChevronRight } from 'lucide-react';
+import { ChevronDown, Zap, LogOut, Settings, Menu, X, ChevronRight, Sun, Moon } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
+import { useTheme } from '../../context/ThemeContext';
 
 const COMPANY_LINKS   = ['Dashboard', 'Leads', 'Sequences', 'Batch'];
-const JOBSEEKER_LINKS = ['Dashboard', 'CV Optimiser', 'Job Matches', 'Applications', 'Outreach', 'Scam Detector'];
+const JOBSEEKER_LINKS = ['Dashboard', 'Jobs', 'CV Optimiser', 'Job Matches', 'Applications', 'Outreach', 'Scam Detector'];
 
 export default function Navbar({ activePage, setActivePage, user, userType, onLogout, onSettings }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const isMobile  = useIsMobile();
+  const { isDark, toggleTheme, colors: c } = useTheme();
   const NAV_LINKS = userType === 'jobseeker' ? JOBSEEKER_LINKS : COMPANY_LINKS;
 
   const initials    = user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : user?.email?.[0]?.toUpperCase() || 'T';
@@ -23,15 +25,15 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
   return (
     <>
       <nav style={{
-        background: 'rgba(10,15,15,0.95)',
+        background: c.nav,
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid #1E3030',
+        borderBottom: `1px solid ${c.brd}`,
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
       }}>
-        {/* Safe-area spacer — fills the status bar / notch on iOS PWA */}
+        {/* Safe-area spacer */}
         <div style={{ height: 'env(safe-area-inset-top, 0px)' }} />
 
-        {/* Actual nav row — always exactly 56px tall */}
+        {/* Nav row */}
         <div style={{
           height: 56,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -58,7 +60,7 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
               {NAV_LINKS.map(link => (
                 <button key={link} onClick={() => navigate(link)} style={{
                   fontSize: 13, fontWeight: activePage === link ? 600 : 400,
-                  color: activePage === link ? '#00D4C8' : '#4A7A78',
+                  color: activePage === link ? '#00D4C8' : c.mut,
                   background: activePage === link ? 'rgba(0,212,200,0.08)' : 'transparent',
                   border: 'none', borderRadius: 7,
                   padding: '6px 14px',
@@ -70,12 +72,28 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+
+            {/* Theme toggle — desktop */}
+            {!isMobile && (
+              <button onClick={toggleTheme} title={isDark ? 'Switch to light mode' : 'Switch to dark mode'} style={{
+                background: 'transparent', border: `1px solid ${c.brd}`,
+                borderRadius: 8, width: 32, height: 32,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: c.mut2, transition: 'all 0.15s', flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#00D4C8'; e.currentTarget.style.color = '#00D4C8'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = c.brd; e.currentTarget.style.color = c.mut2; }}
+              >
+                {isDark ? <Sun size={14} /> : <Moon size={14} />}
+              </button>
+            )}
+
             {/* Desktop user dropdown */}
             {!isMobile && (
               <div style={{ position: 'relative' }}>
                 <button onClick={() => setDropdownOpen(o => !o)} style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  background: '#111A1A', border: '1px solid #1E3030',
+                  background: c.card, border: `1px solid ${c.brd}`,
                   borderRadius: 8, padding: '5px 10px', cursor: 'pointer',
                 }}>
                   <div style={{
@@ -84,8 +102,8 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 11, fontWeight: 700, color: '#0A0F0F', flexShrink: 0,
                   }}>{initials}</div>
-                  <span style={{ fontSize: 13, color: '#C5E8E6', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
-                  <ChevronDown size={12} color="#4A7A78" style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                  <span style={{ fontSize: 13, color: c.txt, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
+                  <ChevronDown size={12} color={c.mut} style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                 </button>
 
                 {dropdownOpen && (
@@ -93,16 +111,16 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
                     <div onClick={() => setDropdownOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
                     <div style={{
                       position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 50,
-                      background: '#111A1A', border: '1px solid #1E3030', borderRadius: 10,
+                      background: c.card, border: `1px solid ${c.brd}`, borderRadius: 10,
                       padding: 6, minWidth: 200,
-                      boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+                      boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
                     }}>
-                      <div style={{ padding: '8px 12px', borderBottom: '1px solid #1E3030', marginBottom: 4 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>{displayName}</p>
-                        <p style={{ fontSize: 11, color: '#4A7A78', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
+                      <div style={{ padding: '8px 12px', borderBottom: `1px solid ${c.brd}`, marginBottom: 4 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: c.txt, margin: 0 }}>{displayName}</p>
+                        <p style={{ fontSize: 11, color: c.mut, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</p>
                       </div>
-                      <DropItem icon={<Settings size={13} />} label="Settings" onClick={() => { setDropdownOpen(false); onSettings?.(); }} />
-                      <DropItem icon={<LogOut size={13} />} label="Sign out" onClick={() => { setDropdownOpen(false); onLogout?.(); }} danger />
+                      <DropItem icon={<Settings size={13} />} label="Settings" onClick={() => { setDropdownOpen(false); onSettings?.(); }} c={c} />
+                      <DropItem icon={<LogOut size={13} />} label="Sign out" onClick={() => { setDropdownOpen(false); onLogout?.(); }} danger c={c} />
                     </div>
                   </>
                 )}
@@ -119,7 +137,7 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
                   fontSize: 12, fontWeight: 700, color: '#0A0F0F', flexShrink: 0,
                 }}>{initials}</div>
                 <button onClick={() => setMobileOpen(o => !o)} style={{
-                  background: 'none', border: 'none', color: '#E8F5F4',
+                  background: 'none', border: 'none', color: c.txt,
                   cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center',
                 }}>
                   {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -137,17 +155,17 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
           <div style={{
             position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 49,
             width: '80%', maxWidth: 300,
-            background: '#111A1A', borderLeft: '1px solid #1E3030',
+            background: c.card, borderLeft: `1px solid ${c.brd}`,
             display: 'flex', flexDirection: 'column',
             paddingTop: 'env(safe-area-inset-top, 0px)',
           }}>
             {/* Sheet header */}
-            <div style={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: '1px solid #1E3030' }}>
+            <div style={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: `1px solid ${c.brd}` }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#E8F5F4', margin: 0 }}>{displayName}</p>
-                <p style={{ fontSize: 11, color: '#4A7A78', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>{user?.email}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: 0 }}>{displayName}</p>
+                <p style={{ fontSize: 11, color: c.mut, margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>{user?.email}</p>
               </div>
-              <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', color: '#4A7A78', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', color: c.mut, cursor: 'pointer', padding: 4 }}>
                 <X size={18} />
               </button>
             </div>
@@ -159,7 +177,7 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '14px 20px', background: activePage === link ? 'rgba(0,212,200,0.08)' : 'none',
                   border: 'none', borderLeft: activePage === link ? '3px solid #00D4C8' : '3px solid transparent',
-                  color: activePage === link ? '#00D4C8' : '#C5E8E6',
+                  color: activePage === link ? '#00D4C8' : c.txt,
                   fontSize: 15, fontWeight: activePage === link ? 600 : 400,
                   cursor: 'pointer', textAlign: 'left',
                 }}>
@@ -170,11 +188,20 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
             </div>
 
             {/* Bottom actions */}
-            <div style={{ padding: '12px 0', borderTop: '1px solid #1E3030', paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
+            <div style={{ padding: '12px 0', borderTop: `1px solid ${c.brd}`, paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
+              {/* Theme toggle */}
+              <button onClick={toggleTheme} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 20px', background: 'none', border: 'none',
+                color: c.mut2, fontSize: 14, cursor: 'pointer', textAlign: 'left',
+              }}>
+                {isDark ? <Sun size={15} /> : <Moon size={15} />}
+                {isDark ? 'Light mode' : 'Dark mode'}
+              </button>
               <button onClick={() => { setMobileOpen(false); onSettings?.(); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '12px 20px', background: 'none', border: 'none',
-                color: '#8ABAB8', fontSize: 14, cursor: 'pointer', textAlign: 'left',
+                color: c.mut2, fontSize: 14, cursor: 'pointer', textAlign: 'left',
               }}>
                 <Settings size={15} /> Settings
               </button>
@@ -193,16 +220,16 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
   );
 }
 
-function DropItem({ icon, label, onClick, danger }) {
+function DropItem({ icon, label, onClick, danger, c }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 8,
       background: 'none', border: 'none', borderRadius: 6,
       padding: '7px 10px', cursor: 'pointer', textAlign: 'left',
-      color: danger ? '#f87171' : '#C5E8E6', fontSize: 13,
+      color: danger ? '#f87171' : c.txt, fontSize: 13,
       transition: 'background 0.1s',
     }}
-    onMouseEnter={e => e.currentTarget.style.background = '#1E3030'}
+    onMouseEnter={e => e.currentTarget.style.background = c.brd}
     onMouseLeave={e => e.currentTarget.style.background = 'none'}
     >
       {icon} {label}

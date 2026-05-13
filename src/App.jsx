@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Zap } from 'lucide-react';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import Navbar from './components/Layout/Navbar';
 import Dashboard from './pages/Dashboard';
 import AgentPage from './pages/AgentPage';
@@ -16,6 +17,7 @@ import JobMatchesPage from './pages/jobseeker/JobMatchesPage';
 import ApplicationsPage from './pages/jobseeker/ApplicationsPage';
 import ScamDetectorPage from './pages/jobseeker/ScamDetectorPage';
 import OutreachAssistantPage from './pages/jobseeker/OutreachAssistantPage';
+import JobListingsPage from './pages/jobseeker/JobListingsPage';
 import LandingPage from './pages/LandingPage';
 import { isLoggedIn, logout, fetchMe } from './services/authApi';
 import { fetchLeads, saveLead, updateLead as updateLeadApi } from './services/leadsApi';
@@ -31,6 +33,11 @@ const saveType  = (uid, type) => { if (!VALID_TYPES.includes(type)) return; try 
 const clearType = (uid) => { try { localStorage.removeItem(typeKey(uid)); } catch {} };
 
 export default function App() {
+  return <ThemeProvider><AppInner /></ThemeProvider>;
+}
+
+function AppInner() {
+  const { colors: c } = useTheme();
   const [activePage,     setActivePage]     = useState('Dashboard');
   const [leads,          setLeads]          = useState([]);
   const [user,           setUser]           = useState(null);
@@ -197,6 +204,7 @@ export default function App() {
         case 'Applications':  return <ApplicationsPage setActivePage={pushPage} />;
         case 'Scam Detector': return <ScamDetectorPage />;
         case 'Outreach':      return <OutreachAssistantPage />;
+        case 'Jobs':          return <JobListingsPage />;
         case 'Agent':         return <AgentPage onLeadSaved={handleLeadSaved} user={user} onGoToSettings={() => pushPage('Settings')} />;
         case 'Settings':      return <SettingsPage user={user} onUserUpdated={setUser} />;
         default:              return <JobSeekerDashboard user={user} setActivePage={pushPage} />;
@@ -217,7 +225,7 @@ export default function App() {
   const floatingLabel  = isJobSeeker ? 'Outreach Assistant' : 'Research a Lead';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0F0F', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: c.bg, display: 'flex', flexDirection: 'column' }}>
       <Navbar
         activePage={activePage}
         setActivePage={pushPage}
