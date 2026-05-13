@@ -11,10 +11,10 @@ async def run_job_matching(profile: dict) -> AsyncGenerator[dict, None]:
     tavily_key = os.getenv("VITE_TAVILY_API_KEY")
 
     if not openai_key:
-        yield {"event": "error", "data": {"message": "VITE_OPENAI_API_KEY not set"}}
+        yield {"event": "error", "data": {"message": "AI service not configured"}}
         return
     if not tavily_key:
-        yield {"event": "error", "data": {"message": "VITE_TAVILY_API_KEY not set"}}
+        yield {"event": "error", "data": {"message": "Research service not configured"}}
         return
 
     target_role  = profile.get("targetRole", "")

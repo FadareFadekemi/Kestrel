@@ -66,13 +66,13 @@ async def run_research_agent(input_str: str) -> AsyncGenerator[dict, None]:
     exa_key    = os.getenv("VITE_EXA_API_KEY")
 
     if not tavily_key:
-        yield {"event": "error", "data": {"message": "VITE_TAVILY_API_KEY not set in .env"}}
+        yield {"event": "error", "data": {"message": "Research service not configured"}}
         return
     if not exa_key:
-        yield {"event": "error", "data": {"message": "VITE_EXA_API_KEY not set in .env"}}
+        yield {"event": "error", "data": {"message": "Research service not configured"}}
         return
 
-    yield {"event": "status", "data": {"text": "Querying Tavily for company intelligence..."}}
+    yield {"event": "status", "data": {"text": "Gathering company intelligence..."}}
 
     is_url = input_str.startswith("http") or "." in input_str
     company_query = (
@@ -95,7 +95,7 @@ async def run_research_agent(input_str: str) -> AsyncGenerator[dict, None]:
         )),
     )
 
-    yield {"event": "status", "data": {"text": "Querying Exa for funding signals & technographics..."}}
+    yield {"event": "status", "data": {"text": "Analysing funding signals & technographics..."}}
 
     exa_results = []
     try:

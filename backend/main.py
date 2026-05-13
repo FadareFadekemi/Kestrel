@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-from fastapi import FastAPI, HTTPException, Depends, Request, status
+from fastapi import FastAPI, HTTPException, Depends, Request, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -659,6 +659,20 @@ async def js_scam_detect(
     from services.js_matching import run_scam_detection
     result = await run_scam_detection(req.text)
     return result
+
+# ── Job board search (jobseeker, protected) ───────────────────────────────────
+
+@app.get("/api/jobseeker/jobs/search")
+@limiter.limit("30/minute")
+async def jobseeker_jobs_search(
+    request: Request,
+    query:    str = Query("developer", min_length=1, max_length=100),
+    location: str = Query("Nigeria",   max_length=100),
+    page:     int = Query(1, ge=1, le=10),
+    _: models.User = Depends(get_current_user),
+):
+    from services.js_jobs import search_jobs
+    return await search_jobs(query.strip(), location.strip(), page)
 
 # ── Public tools (no auth required) ─────────────────────────────────────────
 
