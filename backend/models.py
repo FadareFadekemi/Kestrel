@@ -20,11 +20,33 @@ class User(Base):
     created_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     # Sender profile — used to personalise outreach emails
-    sender_title:       Mapped[str] = mapped_column(String(200), default="")   # e.g. "Head of Sales"
-    company_name:       Mapped[str] = mapped_column(String(200), default="")   # e.g. "Acme Inc."
-    product_description:Mapped[str] = mapped_column(Text,        default="")   # what you sell
-    value_proposition:  Mapped[str] = mapped_column(String(500), default="")   # one-line value prop
-    website:            Mapped[str] = mapped_column(String(500), default="")   # your company website
+    sender_title:        Mapped[str] = mapped_column(String(200), default="")
+    company_name:        Mapped[str] = mapped_column(String(200), default="")
+    product_description: Mapped[str] = mapped_column(Text, default="")
+    value_proposition:   Mapped[str] = mapped_column(String(500), default="")
+    website:             Mapped[str] = mapped_column(String(500), default="")
+
+    # Theme preference (persisted server-side)
+    theme_pref: Mapped[str] = mapped_column(String(10), default="light")
+
+    # Job seeker subscription
+    js_plan:                   Mapped[str]      = mapped_column(String(20), default="free")
+    js_plan_expires_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    js_plan_grace_until:       Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    paystack_customer_code:    Mapped[str]      = mapped_column(String(100), default="")
+    paystack_subscription_code:Mapped[str]      = mapped_column(String(100), default="")
+
+    # Usage counters for free-tier limits (reset monthly)
+    js_research_this_month:  Mapped[int] = mapped_column(Integer, default=0)
+    js_outreach_this_month:  Mapped[int] = mapped_column(Integer, default=0)
+    js_usage_month:          Mapped[str] = mapped_column(String(7), default="")  # YYYY-MM
+
+    payment_logs: Mapped[list["PaymentLog"]] = relationship(
+        "PaymentLog", back_populates="user", cascade="all, delete-orphan"
+    )
+    job_listings: Mapped[list["JobListing"]] = relationship(
+        "JobListing", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {
@@ -38,10 +60,30 @@ class User(Base):
             "productDescription":  self.product_description,
             "valueProposition":    self.value_proposition,
             "website":             self.website,
+            "themePref":           self.theme_pref,
+            "jsPlan":              self.js_plan,
+            "jsPlanExpiresAt":     self.js_plan_expires_at.isoformat() if self.js_plan_expires_at else None,
         }
 
     def profile_complete(self) -> bool:
         return bool(self.company_name and self.product_description)
+
+    def is_pro(self) -> bool:
+        if self.js_plan != "pro":
+            return False
+        now = datetime.now(timezone.utc)
+        if self.js_plan_expires_at and self.js_plan_expires_at < now:
+            if self.js_plan_grace_until and self.js_plan_grace_until >= now:
+                return True
+            return False
+        return True
+
+    def reset_usage_if_needed(self):
+        current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+        if self.js_usage_month != current_month:
+            self.js_research_this_month = 0
+            self.js_outreach_this_month = 0
+            self.js_usage_month = current_month
 
 
 class Lead(Base):
@@ -69,16 +111,13 @@ class Lead(Base):
     status:            Mapped[str]  = mapped_column(String(50), default="Not Contacted")
     date_added:        Mapped[str]  = mapped_column(String(20), default="")
 
-    # Long text fields
     icp_fit:           Mapped[str]  = mapped_column(Text, default="")
     summary:           Mapped[str]  = mapped_column(Text, default="")
     recent_news:       Mapped[str]  = mapped_column(Text, default="")
 
-    # Competitor
     uses_competitor:   Mapped[bool] = mapped_column(Boolean, default=False)
     competitor_name:   Mapped[str]  = mapped_column(String(200), default="")
 
-    # JSON arrays stored as text
     tech_stack:        Mapped[str]  = mapped_column(Text, default="[]")
     competitors:       Mapped[str]  = mapped_column(Text, default="[]")
     pain_points:       Mapped[str]  = mapped_column(Text, default="[]")
@@ -157,4 +196,68 @@ class Email(Base):
             "clicked":   self.clicked,
             "replied":   self.replied,
             "createdAt": self.created_at.isoformat() if self.created_at else "",
+        }
+
+
+class PaymentLog(Base):
+    __tablename__ = "payment_logs"
+
+    id:           Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:      Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    amount:       Mapped[int]      = mapped_column(Integer, default=0)   # in kobo
+    reference:    Mapped[str]      = mapped_column(String(100), unique=True, index=True)
+    event_type:   Mapped[str]      = mapped_column(String(50), default="")
+    payment_type: Mapped[str]      = mapped_column(String(50), default="")  # 'js_pro' | 'job_listing'
+    status:       Mapped[str]      = mapped_column(String(20), default="pending")
+    meta_json:    Mapped[str]      = mapped_column(Text, default="{}")
+    created_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    user: Mapped["User"] = relationship("User", back_populates="payment_logs")
+
+    def to_dict(self):
+        return {
+            "id":          self.id,
+            "amount":      self.amount,
+            "amountNgn":   self.amount // 100,
+            "reference":   self.reference,
+            "eventType":   self.event_type,
+            "paymentType": self.payment_type,
+            "status":      self.status,
+            "createdAt":   self.created_at.isoformat() if self.created_at else "",
+        }
+
+
+class JobListing(Base):
+    __tablename__ = "job_listings"
+
+    id:                Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:           Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title:             Mapped[str]      = mapped_column(String(300))
+    company:           Mapped[str]      = mapped_column(String(200), default="")
+    location:          Mapped[str]      = mapped_column(String(200), default="")
+    description:       Mapped[str]      = mapped_column(Text, default="")
+    salary_range:      Mapped[str]      = mapped_column(String(200), default="")
+    job_type:          Mapped[str]      = mapped_column(String(50), default="Full-time")
+    payment_reference: Mapped[str]      = mapped_column(String(100), default="", index=True)
+    payment_status:    Mapped[str]      = mapped_column(String(20), default="pending")
+    is_active:         Mapped[bool]     = mapped_column(Boolean, default=False)
+    expires_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    user: Mapped["User"] = relationship("User", back_populates="job_listings")
+
+    def to_dict(self):
+        return {
+            "id":               self.id,
+            "userId":           self.user_id,
+            "title":            self.title,
+            "company":          self.company,
+            "location":         self.location,
+            "description":      self.description,
+            "salaryRange":      self.salary_range,
+            "jobType":          self.job_type,
+            "paymentStatus":    self.payment_status,
+            "isActive":         self.is_active,
+            "expiresAt":        self.expires_at.isoformat() if self.expires_at else None,
+            "createdAt":        self.created_at.isoformat() if self.created_at else "",
         }
