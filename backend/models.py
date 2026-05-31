@@ -26,6 +26,9 @@ class User(Base):
     value_proposition:   Mapped[str] = mapped_column(String(500), default="")
     website:             Mapped[str] = mapped_column(String(500), default="")
 
+    # Account type — set at signup, permanent
+    account_type: Mapped[str] = mapped_column(String(20), default="")  # 'company' | 'jobseeker' | '' (legacy)
+
     # Theme preference (persisted server-side)
     theme_pref: Mapped[str] = mapped_column(String(10), default="light")
 
@@ -74,6 +77,7 @@ class User(Base):
             "themePref":             self.theme_pref,
             "jsPlan":                self.js_plan,
             "jsPlanExpiresAt":       self.js_plan_expires_at.isoformat() if self.js_plan_expires_at else None,
+            "accountType":           self.account_type,
             "emailVerified":         self.email_verified,
             "companyDomainVerified": self.company_domain_verified,
             "companyCacNumber":      self.company_cac_number,

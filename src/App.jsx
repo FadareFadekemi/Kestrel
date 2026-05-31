@@ -23,7 +23,7 @@ import JobListingsPage from './pages/jobseeker/JobListingsPage';
 import LandingPage from './pages/LandingPage';
 import PricingPage from './pages/PricingPage';
 import PostJobPage from './pages/PostJobPage';
-import { isLoggedIn, logout, fetchMe } from './services/authApi';
+import { isLoggedIn, logout, fetchMe, setAccountType } from './services/authApi';
 import { fetchLeads, saveLead, updateLead as updateLeadApi } from './services/leadsApi';
 import { getUserPlan } from './services/paymentApi';
 import './index.css';
@@ -129,18 +129,31 @@ function AppInner() {
       .then(async (u) => {
         if (u) {
           setUser(u);
-          // Apply server-side theme preference
           if (u.themePref) {
             try { localStorage.setItem('tc_theme', u.themePref); } catch {}
           }
-          const stored = getType(u.id);
-          if (stored) {
-            setUserType(stored);
-            const [, plan] = await Promise.all([loadLeads(), getUserPlan().catch(() => ({ plan: 'free' }))]);
+          // Use server-side account type if set
+          const serverType = u.accountType;
+          if (serverType) {
+            setUserType(serverType);
+            saveType(u.id, serverType);
+            setAppStep('app');
+            const [, plan] = await Promise.all([
+              serverType === 'company' ? loadLeads() : Promise.resolve(),
+              getUserPlan().catch(() => ({ plan: 'free' })),
+            ]);
             setUserPlan(plan?.plan || u.jsPlan || 'free');
-            return;
+          } else {
+            // Legacy user — fall back to localStorage
+            const stored = getType(u.id);
+            if (stored) {
+              setUserType(stored);
+              const [, plan] = await Promise.all([loadLeads(), getUserPlan().catch(() => ({ plan: 'free' }))]);
+              setUserPlan(plan?.plan || u.jsPlan || 'free');
+            } else {
+              setAppStep('mode-select');
+            }
           }
-          setAppStep('mode-select');
         }
       })
       .catch(() => {})
@@ -161,21 +174,38 @@ function AppInner() {
   // ── Auth handlers ────────────────────────────────────────────────────────────
   const handleAuth = useCallback(async (u) => {
     setUser(u);
-    const stored = getType(u.id);
-    if (stored) {
-      setUserType(stored);
+    window.history.pushState({ tc: 'app', page: 'Dashboard' }, '', '/');
+    const serverType = u.accountType;
+    if (serverType) {
+      // New-style account — type baked in from signup
+      setUserType(serverType);
+      saveType(u.id, serverType);
       setAppStep('app');
-      loadLeads();
+      if (serverType === 'company') loadLeads();
       getUserPlan().then(p => setUserPlan(p.plan)).catch(() => {});
-      window.history.pushState({ tc: 'app', page: 'Dashboard' }, '', '/');
     } else {
-      setAppStep('mode-select');
-      window.history.pushState({ tc: 'app', page: 'Dashboard' }, '', '/');
+      // Legacy account — fall back to localStorage
+      const stored = getType(u.id);
+      if (stored) {
+        setUserType(stored);
+        setAppStep('app');
+        loadLeads();
+        getUserPlan().then(p => setUserPlan(p.plan)).catch(() => {});
+      } else {
+        setAppStep('mode-select');
+      }
     }
   }, []);
 
-  const handleModeSelect = useCallback((type) => {
+  const handleModeSelect = useCallback(async (type, errorCb) => {
     if (!VALID_TYPES.includes(type)) return;
+    try {
+      // Save to DB so this is permanent for legacy users
+      await setAccountType(type);
+    } catch (err) {
+      errorCb?.(err.message);
+      return;
+    }
     setUserType(type);
     if (user) saveType(user.id, type);
     if (type === 'jobseeker') {

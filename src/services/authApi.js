@@ -28,10 +28,21 @@ async function post(path, body) {
   return data;
 }
 
-export async function signup(email, password, name = "") {
-  const data = await post(`${BASE}/api/auth/signup`, { email, password, name });
+export async function signup(email, password, name = "", account_type = "jobseeker") {
+  const data = await post(`${BASE}/api/auth/signup`, { email, password, name, account_type });
   setToken(data.token);
   return data.user;
+}
+
+export async function setAccountType(account_type) {
+  const res = await fetch(`${BASE}/api/auth/account-type`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ account_type }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || 'Failed to set account type');
+  return data;
 }
 
 export async function login(email, password) {

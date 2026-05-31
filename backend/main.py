@@ -140,6 +140,7 @@ class SignupRequest(BaseModel):
     email: str
     password: str
     name: str = ""
+    account_type: str = "jobseeker"
 
     @field_validator("email")
     @classmethod
@@ -162,6 +163,13 @@ class SignupRequest(BaseModel):
     @classmethod
     def sanitize_name(cls, v):
         return v.strip()[:100]
+
+    @field_validator("account_type")
+    @classmethod
+    def valid_account_type(cls, v):
+        if v not in ("company", "jobseeker"):
+            raise ValueError("account_type must be 'company' or 'jobseeker'")
+        return v
 
 class LoginRequest(BaseModel):
     email: str
@@ -351,14 +359,25 @@ def sse(event: str, data: dict) -> str:
 @app.post("/api/auth/signup", status_code=201)
 @limiter.limit("10/minute")
 async def signup(request: Request, req: SignupRequest, db: Session = Depends(get_db)):
+    # Company accounts must use a work email
+    if req.account_type == "company" and _is_personal_domain(req.email):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Company accounts require a work email address. "
+                "Personal email providers (Gmail, Yahoo, Outlook, Hotmail, etc.) are not allowed. "
+                "Please use your company email to sign up."
+            ),
+        )
+
     existing = db.query(models.User).filter(models.User.email == req.email).first()
     if existing:
-        # Intentionally vague — don't confirm whether email exists
         raise HTTPException(status_code=400, detail="Registration failed. Try a different email.")
     user = models.User(
-        email=      req.email,
-        name=       req.name,
-        hashed_pw=  hash_password(req.password),
+        email=        req.email,
+        name=         req.name,
+        hashed_pw=    hash_password(req.password),
+        account_type= req.account_type,
     )
     db.add(user)
     db.commit()
@@ -495,6 +514,40 @@ async def reset_password(request: Request, req: ResetPasswordRequest, db: Sessio
 @app.get("/api/auth/me")
 async def me(current_user: models.User = Depends(get_current_user)):
     return current_user.to_dict()
+
+class AccountTypeRequest(BaseModel):
+    account_type: str
+
+    @field_validator("account_type")
+    @classmethod
+    def valid(cls, v):
+        if v not in ("company", "jobseeker"):
+            raise ValueError("Must be 'company' or 'jobseeker'")
+        return v
+
+
+@app.patch("/api/auth/account-type")
+async def set_account_type(
+    req: AccountTypeRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.account_type:
+        raise HTTPException(status_code=400, detail="Account type is already set and cannot be changed.")
+    if req.account_type == "company" and _is_personal_domain(current_user.email):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Company accounts require a work email address. "
+                "Personal email providers are not allowed. "
+                "Please update your email to a company domain first."
+            ),
+        )
+    current_user.account_type = req.account_type
+    db.commit()
+    db.refresh(current_user)
+    return current_user.to_dict()
+
 
 @app.patch("/api/auth/profile")
 async def update_profile(

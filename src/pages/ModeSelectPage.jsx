@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Zap, ArrowRight, Building2, Target } from 'lucide-react';
+import { Zap, ArrowRight, Building2, Target, AlertCircle } from 'lucide-react';
 import useIsMobile from '../hooks/useIsMobile';
 import { useTheme } from '../context/ThemeContext';
 
@@ -7,6 +7,15 @@ export default function ModeSelectPage({ onSelect }) {
   const { colors: c } = useTheme();
   const isMobile = useIsMobile();
   const [hovering, setHovering] = useState(null);
+  const [error,    setError]    = useState('');
+  const [loading,  setLoading]  = useState(null);
+
+  const handleSelect = async (type) => {
+    setLoading(type);
+    setError('');
+    await onSelect(type, (err) => setError(err));
+    setLoading(null);
+  };
 
   return (
     <div style={{
@@ -37,7 +46,7 @@ export default function ModeSelectPage({ onSelect }) {
             What brings you to techcori?
           </h1>
           <p style={{ fontSize: 14, color: c.mut, margin: 0 }}>
-            Choose your path — you can switch anytime from Settings
+            Choose your account type — this cannot be changed later
           </p>
         </div>
 
@@ -53,14 +62,16 @@ export default function ModeSelectPage({ onSelect }) {
             iconBg="rgba(0,212,200,0.1)"
             badge="For Sales & GTM Teams"
             title="I'm a Company"
-            description="Find leads, research companies, score them, and send personalised outreach emails that convert."
-            features={['Lead research & scoring', 'AI email generation', 'CRM & email tracking']}
-            buttonLabel="Get Started"
+            description="Find leads, research companies, score them, and post verified job listings."
+            features={['Lead research & scoring', 'AI email generation', 'Post job listings']}
+            note="Work email required"
+            buttonLabel={loading === 'company' ? 'Setting up…' : 'Get Started'}
             buttonStyle="filled"
             isHovered={hovering === 'company'}
             onMouseEnter={() => setHovering('company')}
             onMouseLeave={() => setHovering(null)}
-            onClick={() => onSelect('company')}
+            onClick={() => handleSelect('company')}
+            disabled={!!loading}
           />
 
           {/* Job Seeker card */}
@@ -69,19 +80,26 @@ export default function ModeSelectPage({ onSelect }) {
             iconBg="rgba(0,212,200,0.1)"
             badge="For Job Seekers"
             title="I'm a Job Seeker"
-            description="Build your CV, find companies hiring for your role, and reach hiring managers directly with personalised emails."
-            features={['Target company research', 'Personalised outreach', 'Hiring manager contacts']}
-            buttonLabel="Get Started"
+            description="Build your CV, find companies hiring for your role, and reach hiring managers directly."
+            features={['CV scoring & AI rewrite', 'Job listings & matching', 'Outreach assistant']}
+            buttonLabel={loading === 'jobseeker' ? 'Setting up…' : 'Get Started'}
             buttonStyle="outlined"
             accentColor="#00D4C8"
             isHovered={hovering === 'jobseeker'}
             onMouseEnter={() => setHovering('jobseeker')}
             onMouseLeave={() => setHovering(null)}
-            onClick={() => onSelect('jobseeker')}
+            onClick={() => handleSelect('jobseeker')}
+            disabled={!!loading}
           />
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#264040', marginTop: 32 }}>
+        {error && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'var(--error-dim)', border: '1px solid var(--error)', borderRadius: 10, padding: '12px 16px', marginTop: 20 }}>
+            <AlertCircle size={14} color="var(--error)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ fontSize: 13, color: 'var(--error)' }}>{error}</span>
+          </div>
+        )}
+        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted-2)', marginTop: 24 }}>
           Sharp Intelligence. Precise Outreach.
         </p>
       </div>
@@ -89,7 +107,7 @@ export default function ModeSelectPage({ onSelect }) {
   );
 }
 
-function ModeCard({ icon, iconBg, badge, title, description, features, buttonLabel, buttonStyle, accentColor = '#00D4C8', isHovered, onMouseEnter, onMouseLeave, onClick }) {
+function ModeCard({ icon, iconBg, badge, title, description, features, note, buttonLabel, buttonStyle, accentColor = '#00D4C8', isHovered, onMouseEnter, onMouseLeave, onClick, disabled }) {
   const { colors: c } = useTheme();
   return (
     <div
@@ -104,10 +122,10 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
         boxShadow: isHovered ? `0 8px 32px rgba(0,0,0,0.3)` : 'none',
         transform: isHovered ? 'translateY(-2px)' : 'none',
       }}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick()}
+      onKeyDown={e => !disabled && (e.key === 'Enter' || e.key === ' ') && onClick()}
     >
       {/* Header */}
       <div>
@@ -139,6 +157,11 @@ function ModeCard({ icon, iconBg, badge, title, description, features, buttonLab
           </li>
         ))}
       </ul>
+      {note && (
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--warning)', background: 'var(--warning-dim)', borderRadius: 6, padding: '3px 8px', display: 'inline-block' }}>
+          {note}
+        </span>
+      )}
 
       {/* Button */}
       <button
