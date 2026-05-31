@@ -59,6 +59,10 @@ function AppInner() {
   const [appStep,        setAppStep]        = useState('app');
   const [viewingLanding, setViewingLanding] = useState(() => !isLoggedIn());
   const [viewingPricing, setViewingPricing] = useState(() => window.location.pathname === '/pricing');
+  const [resetToken,     setResetToken]     = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('reset_token') || null;
+  });
   const [userPlan,       setUserPlan]       = useState('free');
   const [paywallFeature, setPaywallFeature] = useState(null);
 
@@ -258,7 +262,7 @@ function AppInner() {
     );
   }
 
-  if (!user)                         return <AuthPage onAuth={handleAuth} />;
+  if (!user)                         return <AuthPage onAuth={handleAuth} resetToken={resetToken} />;
   if (appStep === 'mode-select')     return <ModeSelectPage onSelect={handleModeSelect} />;
   if (appStep === 'jobseeker-setup') return <JobSeekerSetupPage user={user} onComplete={handleJobSeekerSetupComplete} />;
 
@@ -291,8 +295,8 @@ function AppInner() {
     }
   };
 
-  const floatingTarget = isJobSeeker ? 'Outreach' : 'Agent';
-  const floatingLabel  = isJobSeeker ? 'Outreach Assistant' : 'Research a Lead';
+  const floatingTarget = isJobSeeker ? 'Outreach' : 'Post a Job';
+  const floatingLabel  = isJobSeeker ? 'Outreach Assistant' : 'Post a Job';
 
   return (
     <PaywallProvider userPlan={userPlan} onUpgrade={refreshUserPlan}>

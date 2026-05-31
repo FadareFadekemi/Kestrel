@@ -29,6 +29,17 @@ class User(Base):
     # Theme preference (persisted server-side)
     theme_pref: Mapped[str] = mapped_column(String(10), default="light")
 
+    # Email + domain verification
+    email_verified:                  Mapped[bool]     = mapped_column(Boolean, default=False)
+    email_verification_token_hash:   Mapped[str]      = mapped_column(String(64), default="")
+    email_verification_expires:      Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    company_domain_verified:         Mapped[bool]     = mapped_column(Boolean, default=False)
+    company_domain_txt_record:       Mapped[str]      = mapped_column(String(80), default="")
+
+    # Company identity (for trust + verification)
+    company_cac_number:    Mapped[str] = mapped_column(String(50), default="")
+    company_linkedin_url:  Mapped[str] = mapped_column(String(500), default="")
+
     # Job seeker subscription
     js_plan:                   Mapped[str]      = mapped_column(String(20), default="free")
     js_plan_expires_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -50,19 +61,23 @@ class User(Base):
 
     def to_dict(self):
         return {
-            "id":                  self.id,
-            "email":               self.email,
-            "name":                self.name,
-            "isActive":            self.is_active,
-            "createdAt":           self.created_at.isoformat() if self.created_at else "",
-            "senderTitle":         self.sender_title,
-            "companyName":         self.company_name,
-            "productDescription":  self.product_description,
-            "valueProposition":    self.value_proposition,
-            "website":             self.website,
-            "themePref":           self.theme_pref,
-            "jsPlan":              self.js_plan,
-            "jsPlanExpiresAt":     self.js_plan_expires_at.isoformat() if self.js_plan_expires_at else None,
+            "id":                    self.id,
+            "email":                 self.email,
+            "name":                  self.name,
+            "isActive":              self.is_active,
+            "createdAt":             self.created_at.isoformat() if self.created_at else "",
+            "senderTitle":           self.sender_title,
+            "companyName":           self.company_name,
+            "productDescription":    self.product_description,
+            "valueProposition":      self.value_proposition,
+            "website":               self.website,
+            "themePref":             self.theme_pref,
+            "jsPlan":                self.js_plan,
+            "jsPlanExpiresAt":       self.js_plan_expires_at.isoformat() if self.js_plan_expires_at else None,
+            "emailVerified":         self.email_verified,
+            "companyDomainVerified": self.company_domain_verified,
+            "companyCacNumber":      self.company_cac_number,
+            "companyLinkedinUrl":    self.company_linkedin_url,
         }
 
     def profile_complete(self) -> bool:
@@ -199,6 +214,30 @@ class Email(Base):
         }
 
 
+class ListingFlag(Base):
+    __tablename__ = "listing_flags"
+    __table_args__ = (UniqueConstraint("listing_id", "reporter_id", name="uq_listing_flag"),)
+
+    id:          Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    listing_id:  Mapped[int]      = mapped_column(Integer, ForeignKey("job_listings.id", ondelete="CASCADE"), index=True)
+    reporter_id: Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    reason:      Mapped[str]      = mapped_column(String(200), default="")
+    created_at:  Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    listing: Mapped["JobListing"] = relationship("JobListing", back_populates="flags")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id:         Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:    Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str]      = mapped_column(String(64), unique=True, index=True)  # SHA-256 hex
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used:       Mapped[bool]     = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class PaymentLog(Base):
     __tablename__ = "payment_logs"
 
@@ -244,10 +283,18 @@ class JobListing(Base):
     expires_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at:        Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
-    user: Mapped["User"] = relationship("User", back_populates="job_listings")
+    # AI screening
+    ai_scam_score:  Mapped[int] = mapped_column(Integer, default=0)
+    ai_scam_flags:  Mapped[str] = mapped_column(Text, default="[]")
+    review_status:  Mapped[str] = mapped_column(String(20), default="ok")  # ok | pending_review | rejected
+    flag_count:     Mapped[int] = mapped_column(Integer, default=0)
+    is_suspended:   Mapped[bool] = mapped_column(Boolean, default=False)
 
-    def to_dict(self):
-        return {
+    user:  Mapped["User"]           = relationship("User", back_populates="job_listings")
+    flags: Mapped[list["ListingFlag"]] = relationship("ListingFlag", back_populates="listing", cascade="all, delete-orphan")
+
+    def to_dict(self, include_screening=False):
+        d = {
             "id":               self.id,
             "userId":           self.user_id,
             "title":            self.title,
@@ -258,6 +305,13 @@ class JobListing(Base):
             "jobType":          self.job_type,
             "paymentStatus":    self.payment_status,
             "isActive":         self.is_active,
+            "reviewStatus":     self.review_status,
+            "isSuspended":      self.is_suspended,
+            "flagCount":        self.flag_count,
+            "aiScamScore":      self.ai_scam_score,
             "expiresAt":        self.expires_at.isoformat() if self.expires_at else None,
             "createdAt":        self.created_at.isoformat() if self.created_at else "",
         }
+        if include_screening:
+            d["aiScamFlags"] = json.loads(self.ai_scam_flags or "[]")
+        return d

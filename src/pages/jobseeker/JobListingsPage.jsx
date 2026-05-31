@@ -3,7 +3,7 @@ import {
   Search, MapPin, Filter, Bookmark, BookmarkCheck,
   ExternalLink, X, ChevronLeft, ChevronRight,
   AlertCircle, Briefcase, Loader, Wifi, WifiOff,
-  CheckCircle, Zap,
+  CheckCircle, Zap, Flag,
 } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
 import { useTheme } from '../../context/ThemeContext';
@@ -12,6 +12,7 @@ import {
   saveJob, unsaveJob, logApplication, buildCVText,
 } from '../../services/jobsApi';
 import { matchJD } from '../../services/jsApi';
+import { getPublicListings } from '../../services/paymentApi';
 
 // Accent is always teal regardless of theme
 const A    = '#00D4C8';
@@ -226,6 +227,105 @@ function FilterPill({ label, active, onClick }) {
   );
 }
 
+// ── techcori listing card ─────────────────────────────────────────────────────
+
+function TechcoriListingCard({ listing, flagged, flagLoading, onFlag }) {
+  const { colors: c } = useTheme();
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div style={{
+      background: c.card,
+      border: `1.5px solid var(--accent)`,
+      borderRadius: 14, padding: 20,
+      boxShadow: '0 0 0 1px var(--accent-dim)',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: c.txt, margin: 0 }}>{listing.title}</p>
+            {/* Verified badge */}
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+              color: '#00875A', background: 'rgba(0,135,90,0.1)',
+              border: '1px solid rgba(0,135,90,0.3)',
+              borderRadius: 6, padding: '2px 7px',
+            }}>
+              <CheckCircle size={9} strokeWidth={3} /> VERIFIED LISTING
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: c.mut2, margin: 0 }}>{listing.company}</p>
+        </div>
+        {/* Flag button */}
+        <button
+          onClick={onFlag}
+          disabled={flagged || flagLoading}
+          title={flagged ? 'Already reported' : 'Report this listing as suspicious'}
+          style={{
+            background: 'none', border: `1px solid ${flagged ? c.brd : 'rgba(239,68,68,0.3)'}`,
+            borderRadius: 8, padding: '5px 10px', cursor: flagged ? 'default' : 'pointer',
+            fontSize: 11, fontWeight: 600,
+            color: flagged ? c.mut : '#ef4444',
+            display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+            opacity: flagLoading ? 0.6 : 1,
+          }}
+        >
+          <AlertCircle size={11} />
+          {flagLoading ? 'Reporting…' : flagged ? 'Reported' : 'Report'}
+        </button>
+      </div>
+
+      {/* Meta */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+        {listing.location && (
+          <span style={{ fontSize: 12, color: c.mut, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <MapPin size={11} /> {listing.location}
+          </span>
+        )}
+        {listing.jobType && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: A, background: AD, border: `1px solid ${AB}`, borderRadius: 6, padding: '2px 8px' }}>
+            {listing.jobType}
+          </span>
+        )}
+        {listing.salaryRange && (
+          <span style={{ fontSize: 12, color: c.mut }}>{listing.salaryRange}</span>
+        )}
+      </div>
+
+      {/* Description (collapsible) */}
+      {listing.description && (
+        <div>
+          <p style={{ fontSize: 13, color: c.mut2, margin: '0 0 6px', lineHeight: 1.6,
+            overflow: 'hidden',
+            display: '-webkit-box', WebkitLineClamp: expanded ? 'unset' : 3,
+            WebkitBoxOrient: 'vertical',
+          }}>
+            {listing.description}
+          </p>
+          {listing.description.length > 180 && (
+            <button onClick={() => setExpanded(e => !e)} style={{
+              background: 'none', border: 'none', color: A, fontSize: 12,
+              cursor: 'pointer', padding: 0, fontWeight: 600,
+            }}>
+              {expanded ? 'Show less' : 'Read more'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Expires */}
+      {listing.expiresAt && (
+        <p style={{ fontSize: 11, color: c.mut, margin: '10px 0 0' }}>
+          Active until {new Date(listing.expiresAt).toLocaleDateString('en-NG', { dateStyle: 'medium' })}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function JobListingsPage() {
@@ -254,7 +354,37 @@ export default function JobListingsPage() {
   const [matchScores,   setMatchScores]   = useState({});
   const [matchLoading,  setMatchLoading]  = useState(new Set());
 
+  // techcori native listings
+  const [tcListings,    setTcListings]    = useState([]);
+  const [flaggedIds,    setFlaggedIds]    = useState(new Set());
+  const [flagLoading,   setFlagLoading]   = useState(null);
+
   const debounceRef = useRef(null);
+
+  // Fetch techcori listings on mount
+  useEffect(() => {
+    getPublicListings('', 'Nigeria', 1)
+      .then(r => setTcListings(r.results || []))
+      .catch(() => {});
+  }, []);
+
+  async function handleFlag(listingId) {
+    if (flaggedIds.has(listingId)) return;
+    setFlagLoading(listingId);
+    try {
+      const { authFetch } = await import('../../services/authApi');
+      const r = await authFetch(`/api/listings/${listingId}/flag`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Reported by job seeker' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      setFlaggedIds(prev => new Set([...prev, listingId]));
+      if (d.suspended) {
+        setTcListings(prev => prev.filter(l => l.id !== listingId));
+      }
+    } catch {}
+    finally { setFlagLoading(null); }
+  }
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const doSearch = useCallback(async (q, loc) => {
@@ -441,6 +571,36 @@ export default function JobListingsPage() {
             padding: '12px 16px', marginBottom: 20, overflowX: 'auto',
           }}>
             <FilterControls />
+          </div>
+        )}
+
+        {/* ── techcori listings ─────────────────────────────────────────── */}
+        {tcListings.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{
+                background: 'var(--accent)', color: '#fff',
+                borderRadius: 6, padding: '3px 10px',
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+              }}>
+                ✦ ON TECHCORI
+              </div>
+              <span style={{ fontSize: 13, color: MUT }}>
+                Verified listings posted directly by companies
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {tcListings.map(listing => (
+                <TechcoriListingCard
+                  key={listing.id}
+                  listing={listing}
+                  flagged={flaggedIds.has(listing.id)}
+                  flagLoading={flagLoading === listing.id}
+                  onFlag={() => handleFlag(listing.id)}
+                />
+              ))}
+            </div>
+            <div style={{ height: 1, background: 'var(--border)', margin: '24px 0' }} />
           </div>
         )}
 

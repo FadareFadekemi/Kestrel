@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Save, CheckCircle, AlertCircle, User, Building, FileText, Zap, Globe } from 'lucide-react';
+import { Save, CheckCircle, AlertCircle, User, Building, FileText, Zap, Globe,
+         ShieldCheck, ShieldAlert, Mail, Link, Hash, RefreshCw, ExternalLink } from 'lucide-react';
 import { authFetch } from '../services/authApi';
 import useIsMobile from '../hooks/useIsMobile';
 import { useTheme } from '../context/ThemeContext';
 
-export default function SettingsPage({ user, onUserUpdated }) {
+export default function SettingsPage({ user, onUserUpdated, userPlan, onPricing }) {
   const { colors: c } = useTheme();
   const isMobile = useIsMobile();
   const [form, setForm] = useState({
@@ -18,6 +19,66 @@ export default function SettingsPage({ user, onUserUpdated }) {
   const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
   const [error,   setError]   = useState('');
+
+  // Verification state
+  const [emailVerified,    setEmailVerified]    = useState(user?.emailVerified || false);
+  const [domainVerified,   setDomainVerified]   = useState(user?.companyDomainVerified || false);
+  const [cacNumber,        setCacNumber]        = useState(user?.companyCacNumber || '');
+  const [linkedinUrl,      setLinkedinUrl]      = useState(user?.companyLinkedinUrl || '');
+  const [verifyMsg,        setVerifyMsg]        = useState('');
+  const [verifyErr,        setVerifyErr]        = useState('');
+  const [verifyLoading,    setVerifyLoading]    = useState('');
+  const [dnsInstructions,  setDnsInstructions]  = useState(null);
+
+  async function sendVerificationEmail() {
+    setVerifyLoading('email'); setVerifyMsg(''); setVerifyErr('');
+    try {
+      const r = await authFetch('/api/auth/send-email-verification', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Failed');
+      setVerifyMsg(d.message);
+    } catch (e) { setVerifyErr(e.message); }
+    finally { setVerifyLoading(''); }
+  }
+
+  async function initiateDomainVerify() {
+    setVerifyLoading('domain'); setVerifyMsg(''); setVerifyErr('');
+    try {
+      const r = await authFetch('/api/company/domain-verify/initiate', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Failed');
+      if (d.verified) { setDomainVerified(true); setVerifyMsg('Domain already verified!'); }
+      else { setDnsInstructions(d); }
+    } catch (e) { setVerifyErr(e.message); }
+    finally { setVerifyLoading(''); }
+  }
+
+  async function checkDomainVerify() {
+    setVerifyLoading('check'); setVerifyMsg(''); setVerifyErr('');
+    try {
+      const r = await authFetch('/api/company/domain-verify/check', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Failed');
+      if (d.verified) { setDomainVerified(true); setDnsInstructions(null); }
+      setVerifyMsg(d.message);
+    } catch (e) { setVerifyErr(e.message); }
+    finally { setVerifyLoading(''); }
+  }
+
+  async function saveCompanyExtras() {
+    setVerifyLoading('extras'); setVerifyMsg(''); setVerifyErr('');
+    try {
+      const r = await authFetch('/api/company/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ company_cac_number: cacNumber, company_linkedin_url: linkedinUrl }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Failed');
+      onUserUpdated?.(d);
+      setVerifyMsg('Company details saved.');
+    } catch (e) { setVerifyErr(e.message); }
+    finally { setVerifyLoading(''); }
+  }
 
   const set = (key, val) => { setForm(f => ({ ...f, [key]: val })); setSaved(false); };
 
@@ -148,7 +209,7 @@ export default function SettingsPage({ user, onUserUpdated }) {
         {error && (
           <div style={{ display: 'flex', gap: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
             <AlertCircle size={13} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span style={{ fontSize: 12, color: '#fca5a5' }}>{error}</span>
+            <span style={{ fontSize: 12, color: 'var(--error)' }}>{error}</span>
           </div>
         )}
 
@@ -167,6 +228,142 @@ export default function SettingsPage({ user, onUserUpdated }) {
           }
         </button>
       </form>
+
+      {/* ── Company Verification ─────────────────────────────────────────── */}
+      <div style={{ marginTop: 40, borderTop: '1px solid var(--border)', paddingTop: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <ShieldCheck size={16} color="var(--accent)" />
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Company Verification</h2>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.6 }}>
+          Verified companies get a trust badge on all job listings. This helps job seekers identify legitimate employers and increases your listing visibility.
+        </p>
+
+        {/* Feedback */}
+        {verifyMsg && <div style={{ background: 'var(--success-dim)', border: '1px solid var(--success)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--success)' }}>{verifyMsg}</div>}
+        {verifyErr && <div style={{ background: 'var(--error-dim)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'var(--error)' }}>{verifyErr}</div>}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Email verification */}
+          <VerifyRow
+            icon={<Mail size={15} />}
+            title="Email Verification"
+            description="Verify your email address to get the basic Verified badge."
+            status={emailVerified ? 'verified' : 'unverified'}
+            statusLabel={emailVerified ? 'Verified' : 'Not verified'}
+            action={!emailVerified && (
+              <button onClick={sendVerificationEmail} disabled={verifyLoading === 'email'} style={verifyBtnStyle}>
+                {verifyLoading === 'email' ? 'Sending…' : 'Send verification email'}
+              </button>
+            )}
+          />
+
+          {/* Domain (DNS) verification */}
+          <VerifyRow
+            icon={<Globe size={15} />}
+            title="Domain Ownership"
+            description="Prove you own your company domain by adding a DNS TXT record. Highest trust tier."
+            status={domainVerified ? 'verified' : 'unverified'}
+            statusLabel={domainVerified ? 'Domain Verified' : 'Not verified'}
+            action={!domainVerified && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={initiateDomainVerify} disabled={verifyLoading === 'domain'} style={verifyBtnStyle}>
+                  {verifyLoading === 'domain' ? 'Loading…' : 'Get DNS instructions'}
+                </button>
+                {dnsInstructions && (
+                  <button onClick={checkDomainVerify} disabled={verifyLoading === 'check'} style={{ ...verifyBtnStyle, background: 'var(--accent)', color: '#fff', border: 'none' }}>
+                    <RefreshCw size={12} /> {verifyLoading === 'check' ? 'Checking…' : 'Check verification'}
+                  </button>
+                )}
+              </div>
+            )}
+          />
+
+          {/* DNS instructions box */}
+          {dnsInstructions && (
+            <div style={{ background: 'var(--card-2)', border: '1px solid var(--border)', borderRadius: 10, padding: 16, fontSize: 13 }}>
+              <p style={{ fontWeight: 600, color: 'var(--text)', margin: '0 0 8px' }}>Add this TXT record to {dnsInstructions.domain}:</p>
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 6, padding: '8px 12px', fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)', marginBottom: 10, wordBreak: 'break-all' }}>
+                {dnsInstructions.txt_record}
+              </div>
+              <p style={{ color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+                In your DNS provider, add a <strong>TXT record</strong> with host <strong>@</strong> and the value above. DNS changes can take up to 48 hours to propagate.
+              </p>
+            </div>
+          )}
+
+          {/* CAC Number */}
+          <VerifyRow
+            icon={<Hash size={15} />}
+            title="CAC Registration Number"
+            description="Your Corporate Affairs Commission registration number. Optional but builds trust."
+            status={cacNumber ? 'provided' : 'unverified'}
+            statusLabel={cacNumber ? 'Provided' : 'Not provided'}
+            action={
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input value={cacNumber} onChange={e => setCacNumber(e.target.value)}
+                  placeholder="e.g. RC1234567" maxLength={50}
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: 'var(--text)', outline: 'none', width: 160 }} />
+                <button onClick={saveCompanyExtras} disabled={verifyLoading === 'extras'} style={verifyBtnStyle}>
+                  {verifyLoading === 'extras' ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            }
+          />
+
+          {/* LinkedIn */}
+          <VerifyRow
+            icon={<Link size={15} />}
+            title="LinkedIn Company Page"
+            description="Link your LinkedIn company profile to help job seekers verify your company."
+            status={linkedinUrl ? 'provided' : 'unverified'}
+            statusLabel={linkedinUrl ? 'Linked' : 'Not linked'}
+            action={
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/company/…" maxLength={500}
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: 'var(--text)', outline: 'none', minWidth: 220, flex: 1 }} />
+                <button onClick={saveCompanyExtras} disabled={verifyLoading === 'extras'} style={verifyBtnStyle}>Save</button>
+                {linkedinUrl && <a href={linkedinUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><ExternalLink size={12} /> View</a>}
+              </div>
+            }
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const verifyBtnStyle = {
+  background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+  color: 'var(--accent)', borderRadius: 8, padding: '7px 14px',
+  fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex',
+  alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
+};
+
+function VerifyRow({ icon, title, description, status, statusLabel, action }) {
+  const statusColor = status === 'verified' ? 'var(--success)'
+    : status === 'provided' ? 'var(--accent)'
+    : 'var(--muted)';
+  const StatusIcon = status === 'verified' || status === 'provided' ? CheckCircle : ShieldAlert;
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flex: 1 }}>
+          <div style={{ color: 'var(--accent)', marginTop: 1 }}>{icon}</div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{title}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: statusColor }}>
+                <StatusIcon size={11} /> {statusLabel}
+              </span>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{description}</p>
+          </div>
+        </div>
+        {action && <div style={{ flexShrink: 0 }}>{action}</div>}
+      </div>
     </div>
   );
 }

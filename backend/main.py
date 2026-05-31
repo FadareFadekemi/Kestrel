@@ -379,6 +379,119 @@ async def login(request: Request, req: LoginRequest, db: Session = Depends(get_d
     token = create_access_token(user.id, user.email)
     return {"token": token, "user": user.to_dict()}
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, v):
+        import re
+        v = v.strip().lower()
+        if not re.match(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", v):
+            raise ValueError("Invalid email")
+        return v
+
+class ResetPasswordRequest(BaseModel):
+    token:    str
+    password: str
+
+    @field_validator("token")
+    @classmethod
+    def token_not_empty(cls, v):
+        v = v.strip()
+        if not v or len(v) > 128:
+            raise ValueError("Invalid token")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if len(v) > 128:
+            raise ValueError("Password too long")
+        return v
+
+
+@app.post("/api/auth/forgot-password")
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    import secrets, hashlib
+    from services.email_sender import send_email
+
+    # Always return the same response — never reveal whether the email exists
+    _RESPONSE = {"message": "If that email is registered, a reset link has been sent."}
+
+    user = db.query(models.User).filter(models.User.email == req.email).first()
+    if not user:
+        return _RESPONSE
+
+    # Invalidate any existing unused tokens for this user
+    db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.user_id == user.id,
+        models.PasswordResetToken.used == False,
+    ).delete()
+    db.commit()
+
+    # Generate a secure random token and store its hash
+    raw_token  = secrets.token_hex(32)          # 64-char hex, 256 bits of entropy
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+
+    reset_token = models.PasswordResetToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+    )
+    db.add(reset_token)
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    reset_link   = f"{frontend_url}/?reset_token={raw_token}"
+
+    await send_email(
+        user.email,
+        "Reset your techcori password",
+        f"Hi {user.name or 'there'},\n\n"
+        f"Someone requested a password reset for your techcori account.\n\n"
+        f"Click the link below to set a new password (valid for 1 hour):\n\n"
+        f"{reset_link}\n\n"
+        f"If you did not request this, you can safely ignore this email.\n\n"
+        f"techcori team",
+    )
+
+    return _RESPONSE
+
+
+@app.post("/api/auth/reset-password")
+@limiter.limit("10/minute")
+async def reset_password(request: Request, req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    import hashlib
+    from auth import hash_password
+
+    token_hash = hashlib.sha256(req.token.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+
+    reset = db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.token_hash == token_hash,
+        models.PasswordResetToken.used       == False,
+        models.PasswordResetToken.expires_at  > now,
+    ).first()
+
+    if not reset:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
+
+    user = db.query(models.User).filter(models.User.id == reset.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=400, detail="Account not found.")
+
+    user.hashed_pw = hash_password(req.password)
+    reset.used = True
+    db.commit()
+
+    return {"message": "Password updated successfully. You can now sign in."}
+
+
 @app.get("/api/auth/me")
 async def me(current_user: models.User = Depends(get_current_user)):
     return current_user.to_dict()
@@ -706,6 +819,49 @@ def health():
     return {"status": "ok", "missing_keys": missing}
 
 
+# ── Verification constants ────────────────────────────────────────────────────
+
+PERSONAL_EMAIL_DOMAINS = frozenset({
+    'gmail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.co.ng', 'hotmail.com',
+    'hotmail.co.uk', 'outlook.com', 'live.com', 'msn.com', 'icloud.com',
+    'me.com', 'aol.com', 'protonmail.com', 'proton.me', 'ymail.com',
+    'googlemail.com', 'mail.com', 'zoho.com', 'gmx.com', 'gmx.net',
+    'yandex.com', 'yandex.ru', 'inbox.com', 'fastmail.com', 'tutanota.com',
+    'mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwam.com',
+    'sharklasers.com', 'trashmail.com', 'dispostable.com',
+})
+
+SCAM_PHRASES = [
+    'pay to apply', 'registration fee', 'training fee', 'upfront fee',
+    'payment before', 'pay before interview', 'send money', 'western union',
+    'moneygram', 'recharge card', 'airtime', 'pay for materials',
+    'caution fee', 'security deposit', 'processing fee for job',
+]
+
+FLAG_SUSPEND_THRESHOLD = 3  # suspend after this many unique user flags
+
+
+def _is_personal_domain(email: str) -> bool:
+    domain = email.split('@')[-1].lower()
+    return domain in PERSONAL_EMAIL_DOMAINS
+
+
+def _quality_check_listing(title: str, description: str, company: str) -> tuple[bool, str]:
+    """Returns (ok, error_message). Checks before payment is taken."""
+    if len(description.strip()) < 100:
+        return False, "Job description must be at least 100 characters. Give candidates enough detail."
+    if len(company.strip()) < 2:
+        return False, "Company name is required."
+    text_lower = (title + ' ' + description).lower()
+    for phrase in SCAM_PHRASES:
+        if phrase in text_lower:
+            return False, (
+                f"Listing rejected: contains language that may indicate a pay-to-apply scam ('{phrase}'). "
+                "techcori prohibits any listing that requires applicants to pay money."
+            )
+    return True, ""
+
+
 # ── Payment Pydantic models ───────────────────────────────────────────────────
 
 class VerifyPaymentRequest(BaseModel):
@@ -1014,8 +1170,23 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
                     listing = db.query(models.JobListing).filter(models.JobListing.id == int(listing_id)).first()
                     if listing and listing.payment_status == "pending" and amount_kobo >= 200000:
                         listing.payment_status = "paid"
-                        listing.is_active = True
                         listing.expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+                        from services.listing_screener import screen_listing
+                        screen = await screen_listing(
+                            listing.title, listing.company, listing.location,
+                            listing.description, listing.salary_range,
+                        )
+                        listing.ai_scam_score = screen["score"]
+                        listing.ai_scam_flags = json.dumps(screen["flags"])
+                        if screen["verdict"] == "reject":
+                            listing.review_status = "rejected"
+                            listing.is_active = False
+                        elif screen["verdict"] == "review":
+                            listing.review_status = "pending_review"
+                            listing.is_active = False
+                        else:
+                            listing.review_status = "ok"
+                            listing.is_active = True
                         log_entry = _log_payment(db, user.id, amount_kobo, str(reference),
                                                  "charge.success", "job_listing", "success",
                                                  meta={"listing_id": listing_id})
@@ -1083,10 +1254,27 @@ async def initiate_listing_payment(
     from services.paystack import initialize_transaction, PAYSTACK_PUBLIC_KEY
     from datetime import timedelta
 
+    # Layer 1: Block personal email domains
+    if _is_personal_domain(current_user.email):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Job listings must be posted from a company email address. "
+                "Personal email providers (Gmail, Yahoo, Outlook, etc.) are not permitted. "
+                "Please update your account email to a company domain in Settings."
+            ),
+        )
+
+    # Layer 1: Quality gates (before taking payment)
+    company_name = req.company or current_user.company_name
+    ok, err = _quality_check_listing(req.title, req.description, company_name)
+    if not ok:
+        raise HTTPException(status_code=400, detail=err)
+
     listing = models.JobListing(
         user_id=current_user.id,
         title=req.title,
-        company=req.company or current_user.company_name,
+        company=company_name,
         location=req.location,
         description=req.description,
         salary_range=req.salary_range,
@@ -1169,19 +1357,60 @@ async def verify_listing_payment(
         return listing.to_dict()
 
     listing.payment_status = "paid"
-    listing.is_active = True
     listing.expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+
+    # Layer 1: AI pre-screening
+    from services.listing_screener import screen_listing
+    screen = await screen_listing(
+        listing.title, listing.company, listing.location,
+        listing.description, listing.salary_range,
+    )
+    listing.ai_scam_score = screen["score"]
+    listing.ai_scam_flags = json.dumps(screen["flags"])
+
+    if screen["verdict"] == "reject":
+        listing.review_status = "rejected"
+        listing.is_active     = False
+        db.commit()
+        from services.email_sender import send_email
+        await send_email(
+            current_user.email,
+            "Job listing not approved — techcori",
+            f"Hi {current_user.name or 'there'},\n\n"
+            f"Your job listing \"{listing.title}\" was not approved by our AI screening system.\n\n"
+            f"Reason: {', '.join(screen['flags']) or 'Listing did not meet our quality standards.'}\n\n"
+            f"If you believe this is an error, contact support@techcori.com with your payment reference: {req.reference}\n\n"
+            f"techcori team",
+        )
+        raise HTTPException(status_code=400, detail="Listing was not approved after AI review. A full refund will be processed within 3 business days. Check your email for details.")
+
+    elif screen["verdict"] == "review":
+        listing.review_status = "pending_review"
+        listing.is_active     = False
+    else:
+        listing.review_status = "ok"
+        listing.is_active     = True
+
     db.commit()
     db.refresh(listing)
 
     from services.email_sender import send_email
-    await send_email(
-        current_user.email,
-        "Job listing payment confirmed — techcori",
-        f"Hi {current_user.name or 'there'},\n\nYour job listing \"{listing.title}\" is now live!\n\n"
-        f"Amount paid: ₦2,000\nReference: {req.reference}\n"
-        f"Listing expires: {listing.expires_at.strftime('%B %d, %Y')}\n\ntechcori team",
-    )
+    if listing.is_active:
+        await send_email(
+            current_user.email,
+            "Job listing is now live — techcori",
+            f"Hi {current_user.name or 'there'},\n\nYour job listing \"{listing.title}\" passed our screening and is now live!\n\n"
+            f"Amount paid: ₦2,000\nReference: {req.reference}\n"
+            f"Listing expires: {listing.expires_at.strftime('%B %d, %Y')}\n\ntechcori team",
+        )
+    else:
+        await send_email(
+            current_user.email,
+            "Job listing under review — techcori",
+            f"Hi {current_user.name or 'there'},\n\nYour job listing \"{listing.title}\" is under human review.\n\n"
+            f"Our team will review it within 24 hours. We'll email you when it goes live.\n\n"
+            f"Reference: {req.reference}\n\ntechcori team",
+        )
 
     return listing.to_dict()
 
@@ -1239,6 +1468,284 @@ async def renew_listing(
         "email":      current_user.email,
         "amount":     200000,
     }
+
+
+# ── Email verification ────────────────────────────────────────────────────────
+
+@app.post("/api/auth/send-email-verification")
+@limiter.limit("5/minute")
+async def send_email_verification(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    import secrets, hashlib
+    from services.email_sender import send_email
+
+    if current_user.email_verified:
+        return {"message": "Email already verified."}
+
+    raw_token  = secrets.token_hex(32)
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    current_user.email_verification_token_hash = token_hash
+    current_user.email_verification_expires    = expires_at
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    verify_link  = f"{frontend_url}/?verify_email={raw_token}"
+
+    await send_email(
+        current_user.email,
+        "Verify your techcori company email",
+        f"Hi {current_user.name or 'there'},\n\n"
+        f"Click the link below to verify your email and get the Verified badge on your job listings:\n\n"
+        f"{verify_link}\n\n"
+        f"This link expires in 24 hours.\n\ntechcori team",
+    )
+    return {"message": "Verification email sent. Check your inbox."}
+
+
+@app.get("/api/auth/verify-email")
+@limiter.limit("20/minute")
+async def verify_email(
+    request: Request,
+    token: str = Query(..., min_length=1, max_length=128),
+    db: Session = Depends(get_db),
+):
+    import hashlib
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+
+    user = db.query(models.User).filter(
+        models.User.email_verification_token_hash == token_hash,
+        models.User.email_verification_expires > now,
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired.")
+
+    user.email_verified = True
+    user.email_verification_token_hash = ""
+    db.commit()
+    return {"message": "Email verified successfully. Your listings now show the Verified badge."}
+
+
+# ── Domain (DNS) verification ─────────────────────────────────────────────────
+
+@app.post("/api/company/domain-verify/initiate")
+@limiter.limit("10/minute")
+async def initiate_domain_verification(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    import secrets
+
+    if current_user.company_domain_verified:
+        return {"message": "Domain already verified.", "verified": True}
+
+    if _is_personal_domain(current_user.email):
+        raise HTTPException(
+            status_code=400,
+            detail="Domain verification requires a company domain email. Personal email addresses (Gmail, Yahoo, etc.) cannot be domain-verified."
+        )
+
+    domain = current_user.email.split('@')[1].lower()
+    if not current_user.company_domain_txt_record:
+        txt_value = f"techcori-verify={secrets.token_hex(16)}"
+        current_user.company_domain_txt_record = txt_value
+        db.commit()
+
+    return {
+        "domain":     domain,
+        "txt_record": current_user.company_domain_txt_record,
+        "instructions": (
+            f"Add the following TXT record to your domain's DNS settings, "
+            f"then click 'Check verification'.\n\n"
+            f"Type: TXT\nName/Host: @ (or your root domain)\nValue: {current_user.company_domain_txt_record}\n\n"
+            f"DNS changes can take up to 48 hours to propagate."
+        ),
+        "verified": False,
+    }
+
+
+@app.post("/api/company/domain-verify/check")
+@limiter.limit("10/minute")
+async def check_domain_verification(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.company_domain_verified:
+        return {"verified": True, "message": "Domain already verified."}
+
+    if not current_user.company_domain_txt_record:
+        raise HTTPException(status_code=400, detail="Initiate domain verification first.")
+
+    domain = current_user.email.split('@')[1].lower()
+    expected_txt = current_user.company_domain_txt_record
+
+    # Check via Google DNS-over-HTTPS (no extra packages needed)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://dns.google/resolve",
+                params={"name": domain, "type": "TXT"},
+            )
+        data = resp.json()
+        answers = data.get("Answer", [])
+        txt_values = [a.get("data", "").strip('"') for a in answers if a.get("type") == 16]
+        if expected_txt in txt_values:
+            current_user.company_domain_verified = True
+            db.commit()
+            return {"verified": True, "message": "Domain verified! Your listings now show the Domain Verified badge."}
+        return {"verified": False, "message": f"TXT record not found yet for {domain}. DNS changes can take up to 48 hours."}
+    except Exception as e:
+        log.warning("DNS check failed for %s: %s", domain, e)
+        return {"verified": False, "message": "Could not check DNS right now. Try again in a few minutes."}
+
+
+# ── Company profile (CAC, LinkedIn) ──────────────────────────────────────────
+
+class CompanyProfileUpdate(BaseModel):
+    company_cac_number:   Optional[str] = None
+    company_linkedin_url: Optional[str] = None
+
+    @field_validator("company_cac_number")
+    @classmethod
+    def sanitize_cac(cls, v):
+        if v:
+            v = v.strip()[:50]
+        return v
+
+    @field_validator("company_linkedin_url")
+    @classmethod
+    def valid_linkedin(cls, v):
+        if v:
+            v = v.strip()[:500]
+            if v and 'linkedin.com' not in v.lower():
+                raise ValueError("Must be a LinkedIn URL")
+        return v
+
+
+@app.patch("/api/company/profile")
+async def update_company_profile(
+    req: CompanyProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    for field, value in req.model_dump(exclude_none=True).items():
+        setattr(current_user, field, value or "")
+    db.commit()
+    db.refresh(current_user)
+    return current_user.to_dict()
+
+
+# ── Listing flagging (job seekers) ────────────────────────────────────────────
+
+class FlagRequest(BaseModel):
+    reason: str = ""
+
+    @field_validator("reason")
+    @classmethod
+    def sanitize_reason(cls, v):
+        return v.strip()[:200]
+
+
+@app.post("/api/listings/{listing_id}/flag", status_code=200)
+@limiter.limit("20/minute")
+async def flag_listing(
+    request: Request,
+    listing_id: int,
+    req: FlagRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    listing = db.query(models.JobListing).filter(
+        models.JobListing.id == listing_id,
+        models.JobListing.is_active == True,
+    ).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    # Each user can only flag each listing once
+    existing = db.query(models.ListingFlag).filter(
+        models.ListingFlag.listing_id  == listing_id,
+        models.ListingFlag.reporter_id == current_user.id,
+    ).first()
+    if existing:
+        return {"message": "You have already flagged this listing."}
+
+    flag = models.ListingFlag(
+        listing_id=listing_id,
+        reporter_id=current_user.id,
+        reason=req.reason,
+    )
+    db.add(flag)
+    listing.flag_count += 1
+
+    if listing.flag_count >= FLAG_SUSPEND_THRESHOLD:
+        listing.is_suspended = True
+        listing.is_active    = False
+        log.warning("Listing %s suspended after %s flags.", listing_id, listing.flag_count)
+        # Notify admin (best-effort)
+        admin_email = os.getenv("ADMIN_EMAIL", "")
+        if admin_email:
+            from services.email_sender import send_email
+            await send_email(
+                admin_email,
+                f"[techcori] Listing #{listing_id} suspended — {listing.flag_count} flags",
+                f"Listing '{listing.title}' by company '{listing.company}' has been suspended "
+                f"after receiving {listing.flag_count} flags from job seekers.\n\n"
+                f"Last flag reason: {req.reason or 'No reason given'}\n\n"
+                f"Review and take action in the admin panel.",
+            )
+
+    db.commit()
+    return {"message": "Thank you for reporting this listing. Our team will review it.", "suspended": listing.is_suspended}
+
+
+# ── Admin: flagged listings ───────────────────────────────────────────────────
+
+@app.get("/api/admin/listings/flagged")
+async def get_flagged_listings(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if current_user.email != admin_email:
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    listings = (
+        db.query(models.JobListing)
+        .filter(models.JobListing.flag_count > 0)
+        .order_by(models.JobListing.flag_count.desc())
+        .all()
+    )
+    return [l.to_dict(include_screening=True) for l in listings]
+
+
+@app.post("/api/admin/listings/{listing_id}/restore")
+async def restore_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if current_user.email != admin_email:
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    listing = db.query(models.JobListing).filter(models.JobListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    listing.is_suspended = False
+    listing.is_active    = True
+    listing.flag_count   = 0
+    db.commit()
+    return {"message": "Listing restored."}
 
 
 @app.get("/api/listings/public")
