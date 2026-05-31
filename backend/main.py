@@ -890,6 +890,11 @@ async def verify_js_pro_payment(
     if tx.get("status") != "success":
         raise HTTPException(status_code=400, detail="Payment not yet completed")
 
+    # Verify the transaction belongs to the authenticated user — prevents reference theft
+    tx_email = tx.get("customer", {}).get("email", "").lower()
+    if tx_email and tx_email != current_user.email.lower():
+        raise HTTPException(status_code=400, detail="Payment reference does not belong to this account")
+
     amount_kobo = tx.get("amount", 0)
     if amount_kobo < 200000:
         raise HTTPException(status_code=400, detail="Insufficient payment amount")
@@ -994,16 +999,20 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
                 user.paystack_customer_code = customer_code
 
             if payment_type == "js_pro":
-                log_entry = _log_payment(db, user.id, amount_kobo, str(reference),
-                                         "charge.success", "js_pro", "success",
-                                         meta={"gateway_response": data.get("gateway_response")})
-                if log_entry:
-                    _upgrade_user_to_pro(user, db, amount_kobo, str(reference))
+                # Validate amount before upgrading — must be exactly ₦2,000 (200,000 kobo)
+                if amount_kobo >= 200000:
+                    log_entry = _log_payment(db, user.id, amount_kobo, str(reference),
+                                             "charge.success", "js_pro", "success",
+                                             meta={"gateway_response": data.get("gateway_response")})
+                    if log_entry:
+                        _upgrade_user_to_pro(user, db, amount_kobo, str(reference))
+                else:
+                    log.warning("Webhook: js_pro charge below minimum: %s kobo ref=%s", amount_kobo, reference)
             elif payment_type == "job_listing":
                 listing_id = data.get("metadata", {}).get("listing_id")
                 if listing_id:
                     listing = db.query(models.JobListing).filter(models.JobListing.id == int(listing_id)).first()
-                    if listing and listing.payment_status == "pending":
+                    if listing and listing.payment_status == "pending" and amount_kobo >= 200000:
                         listing.payment_status = "paid"
                         listing.is_active = True
                         listing.expires_at = datetime.now(timezone.utc) + timedelta(days=30)
@@ -1135,6 +1144,10 @@ async def verify_listing_payment(
     ).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+    # Reference must match what the server generated for this specific listing
+    if req.reference != listing.payment_reference:
+        raise HTTPException(status_code=400, detail="Reference does not match this listing")
 
     result = await verify_transaction(req.reference)
     if not result["ok"]:
