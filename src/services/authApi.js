@@ -45,8 +45,8 @@ export async function setAccountType(account_type) {
   return data;
 }
 
-export async function login(email, password) {
-  const data = await post(`${BASE}/api/auth/login`, { email, password });
+export async function login(email, password, account_type = "") {
+  const data = await post(`${BASE}/api/auth/login`, { email, password, account_type });
   setToken(data.token);
   return data.user;
 }

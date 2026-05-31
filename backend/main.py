@@ -174,6 +174,14 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    account_type: str = ""
+
+    @field_validator("account_type")
+    @classmethod
+    def valid_login_type(cls, v):
+        if v and v not in ("company", "jobseeker"):
+            raise ValueError("Invalid account_type")
+        return v
 
 class ResearchRequest(BaseModel):
     input: str
@@ -391,10 +399,14 @@ async def login(request: Request, req: LoginRequest, db: Session = Depends(get_d
     user = db.query(models.User).filter(models.User.email == req.email.strip().lower()).first()
     # Always run verify_password to prevent timing attacks (even if user not found)
     dummy_hash = "$2b$12$KIXzBT3HKpGI2GsIGeTFMOGXS1qiStdIWfFa7i6MFTNk8OxZBLKzm"
-    if not user or not verify_password(req.password, user.hashed_pw if user else dummy_hash):
+    pw_ok = verify_password(req.password, user.hashed_pw if user else dummy_hash)
+    if not user or not pw_ok:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is inactive")
+    # Account type mismatch — return identical error to wrong password (no information leak)
+    if req.account_type and user.account_type and req.account_type != user.account_type:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_access_token(user.id, user.email)
     return {"token": token, "user": user.to_dict()}
 

@@ -30,8 +30,9 @@ async function submitPasswordReset(token, password) {
 
 export default function AuthPage({ onAuth, resetToken = null }) {
   const { isDark, colors: c } = useTheme();
-  const [mode,       setMode]       = useState(resetToken ? 'reset' : 'login');
-  const [signupType, setSignupType] = useState(null); // null | 'jobseeker' | 'company'
+  const [mode,       setMode]       = useState(resetToken ? 'reset' : 'landing');
+  // 'landing' = choose type first, 'login', 'signup', 'forgot', 'reset'
+  const [accountType, setAccountType] = useState(null); // 'jobseeker' | 'company'
   const [email,      setEmail]      = useState('');
   const [password,   setPassword]   = useState('');
   const [password2,  setPassword2]  = useState('');
@@ -41,6 +42,13 @@ export default function AuthPage({ onAuth, resetToken = null }) {
   const [error,      setError]      = useState('');
   const [success,    setSuccess]    = useState('');
 
+  const selectType = (type, nextMode) => {
+    setAccountType(type);
+    setMode(nextMode);
+    setError('');
+    setSuccess('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -48,10 +56,10 @@ export default function AuthPage({ onAuth, resetToken = null }) {
     setLoading(true);
     try {
       if (mode === 'login') {
-        const user = await login(email, password);
+        const user = await login(email, password, accountType || '');
         onAuth(user);
       } else if (mode === 'signup') {
-        const user = await signup(email, password, name, signupType);
+        const user = await signup(email, password, name, accountType);
         onAuth(user);
       } else if (mode === 'forgot') {
         await requestPasswordReset(email);
@@ -71,7 +79,13 @@ export default function AuthPage({ onAuth, resetToken = null }) {
 
   const switchMode = () => {
     setMode(m => m === 'login' ? 'signup' : 'login');
-    setSignupType(null);
+    setError('');
+    setSuccess('');
+  };
+
+  const goBack = () => {
+    setMode('landing');
+    setAccountType(null);
     setError('');
     setSuccess('');
   };
@@ -91,7 +105,7 @@ export default function AuthPage({ onAuth, resetToken = null }) {
         pointerEvents: 'none',
       }} />
 
-      <div style={{ width: '100%', maxWidth: mode === 'signup' && !signupType ? 640 : 400, position: 'relative', zIndex: 1, transition: 'max-width 0.2s' }}>
+      <div style={{ width: '100%', maxWidth: mode === 'landing' ? 640 : 420, position: 'relative', zIndex: 1, transition: 'max-width 0.2s' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{
@@ -106,92 +120,87 @@ export default function AuthPage({ onAuth, resetToken = null }) {
           <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>work smart, rise sharp</p>
         </div>
 
-        {/* ── Signup: account type picker ─────────────────────────────── */}
-        {mode === 'signup' && !signupType && (
+        {/* ── Landing: choose account type (for both login & signup) ───── */}
+        {mode === 'landing' && (
           <div>
             <h2 style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 22, fontWeight: 700, color: 'var(--text)', textAlign: 'center', margin: '0 0 6px' }}>
-              Create your account
+              Who are you?
             </h2>
             <p style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', margin: '0 0 28px' }}>
-              Choose the account type that describes you
+              Each account type is completely separate. One email can only be registered to one account type.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
               <TypeCard
                 icon={<Target size={28} color="var(--accent)" />}
                 title="Job Seeker"
                 description="Find jobs, optimise your CV, and reach hiring managers directly."
                 note="Any email works"
-                onClick={() => setSignupType('jobseeker')}
+                onLogin={() => selectType('jobseeker', 'login')}
+                onSignup={() => selectType('jobseeker', 'signup')}
                 isDark={isDark}
               />
               <TypeCard
                 icon={<Building2 size={28} color="var(--accent)" />}
                 title="Company"
                 description="Research leads, write outreach, and post verified job listings."
-                note="Work email required"
+                note="Work email required for signup"
                 noteWarning
-                onClick={() => setSignupType('company')}
+                onLogin={() => selectType('company', 'login')}
+                onSignup={() => selectType('company', 'signup')}
                 isDark={isDark}
               />
             </div>
-            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)' }}>
-              Already have an account?{' '}
-              <button onClick={() => setMode('login')} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: 0 }}>
-                Sign in
-              </button>
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+              One email address = one account type. To use both, register with two different email addresses.
             </p>
           </div>
         )}
 
-        {/* ── Signup form (after type chosen) + Login + Forgot + Reset ── */}
-        {(mode !== 'signup' || signupType) && (
+        {/* ── Login / Signup / Forgot / Reset form ─────────────────────── */}
+        {mode !== 'landing' && (
           <div style={{
             background: cardBg, border: '1px solid var(--border)',
             borderRadius: 16, padding: 32,
             boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.4)' : '0 12px 40px rgba(0,0,0,0.08)',
           }}>
-            {/* Back / header */}
-            {mode === 'signup' && signupType && (
-              <button onClick={() => { setSignupType(null); setError(''); }} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--muted)', fontSize: 13, marginBottom: 18, padding: 0,
-              }}>
-                <ArrowLeft size={14} />
-                Back
-              </button>
-            )}
-            {(mode === 'forgot' || mode === 'reset') && (
-              <button onClick={() => { setMode('login'); setError(''); setSuccess(''); }} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--muted)', fontSize: 13, marginBottom: 18, padding: 0,
-              }}>
-                <ArrowLeft size={14} /> Back to sign in
-              </button>
+            {/* Back button */}
+            <button onClick={mode === 'forgot' || mode === 'reset' ? () => { setMode('login'); setError(''); setSuccess(''); } : goBack}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 13, marginBottom: 18, padding: 0 }}>
+              <ArrowLeft size={14} />
+              {mode === 'forgot' || mode === 'reset' ? 'Back to sign in' : 'Back'}
+            </button>
+
+            {/* Account type chip */}
+            {accountType && (mode === 'login' || mode === 'signup') && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 20, padding: '4px 12px', marginBottom: 16 }}>
+                {accountType === 'company' ? <Building2 size={12} color="var(--accent)" /> : <Target size={12} color="var(--accent)" />}
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                  {accountType === 'company' ? 'Company Account' : 'Job Seeker Account'}
+                </span>
+              </div>
             )}
 
             {/* Title */}
             <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
               {mode === 'login'  ? 'Welcome back'
-               : mode === 'signup' && signupType === 'company'   ? 'Create company account'
-               : mode === 'signup' && signupType === 'jobseeker' ? 'Create job seeker account'
+               : mode === 'signup' && accountType === 'company'   ? 'Create company account'
+               : mode === 'signup' ? 'Create job seeker account'
                : mode === 'forgot' ? 'Reset your password'
                : 'Set a new password'}
             </h2>
             <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 20px' }}>
-              {mode === 'login'  ? 'Sign in to your techcori workspace'
-               : mode === 'signup' && signupType === 'company' ? 'A work email is required — no Gmail, Yahoo, Hotmail, etc.'
-               : mode === 'signup' ? 'Get your career intelligence tools ready'
-               : mode === 'forgot' ? 'Enter your email and we\'ll send a reset link'
-               : 'Choose a strong password for your account'}
+              {mode === 'login'  ? `Signing in as ${accountType === 'company' ? 'a company' : 'a job seeker'}`
+               : mode === 'signup' && accountType === 'company' ? 'Work email required — no Gmail, Yahoo, Hotmail, etc.'
+               : mode === 'signup' ? 'Any email address works'
+               : mode === 'forgot' ? "Enter your email and we'll send a reset link"
+               : 'Choose a strong new password'}
             </p>
 
             {/* Error / success */}
             {error && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'var(--error-dim)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 12px', marginBottom: 16 }}>
                 <AlertCircle size={14} color="var(--error)" style={{ marginTop: 1, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'var(--error)' }}>{error}</span>
+                <span style={{ fontSize: 12, color: 'var(--error)', lineHeight: 1.5 }}>{error}</span>
               </div>
             )}
             {success && (
@@ -228,12 +237,10 @@ export default function AuthPage({ onAuth, resetToken = null }) {
                 </div>
               )}
               {mode === 'reset' && (
-                <Field icon={<Lock size={14} />}
-                  type={showPw ? 'text' : 'password'}
+                <Field icon={<Lock size={14} />} type={showPw ? 'text' : 'password'}
                   placeholder="Confirm new password"
                   value={password2} onChange={e => setPassword2(e.target.value)}
-                  autoComplete="new-password" required
-                />
+                  autoComplete="new-password" required />
               )}
 
               <button type="submit" disabled={loading} style={{
@@ -244,8 +251,7 @@ export default function AuthPage({ onAuth, resetToken = null }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 transition: 'all 0.15s', marginTop: 4,
               }}>
-                {loading
-                  ? <><Loader size={14} className="animate-spin-icon" /> Processing…</>
+                {loading ? <><Loader size={14} className="animate-spin-icon" /> Processing…</>
                   : mode === 'login'  ? 'Sign in'
                   : mode === 'signup' ? 'Create account'
                   : mode === 'forgot' ? 'Send reset link'
@@ -254,15 +260,23 @@ export default function AuthPage({ onAuth, resetToken = null }) {
             </form>
 
             {mode === 'login' && (
-              <div style={{ textAlign: 'right', marginTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, flexWrap: 'wrap', gap: 6 }}>
+                {error && (
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                    Wrong account type?{' '}
+                    <button onClick={goBack} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 11, cursor: 'pointer', padding: 0, fontWeight: 600 }}>
+                      Go back
+                    </button>
+                  </span>
+                )}
                 <button onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 12, padding: 0 }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 12, padding: 0, marginLeft: 'auto' }}>
                   Forgot your password?
                 </button>
               </div>
             )}
 
-            {(mode === 'login' || (mode === 'signup' && signupType)) && (
+            {(mode === 'login' || mode === 'signup') && (
               <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginTop: 20, marginBottom: 0 }}>
                 {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
                 <button onClick={switchMode} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: 0 }}>
@@ -277,24 +291,16 @@ export default function AuthPage({ onAuth, resetToken = null }) {
   );
 }
 
-function TypeCard({ icon, title, description, note, noteWarning, onClick, isDark }) {
-  const [hovered, setHovered] = useState(false);
+function TypeCard({ icon, title, description, note, noteWarning, onLogin, onSignup, isDark }) {
   return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: hovered ? (isDark ? '#0D2020' : '#F0FAF8') : 'var(--card)',
-        border: `1.5px solid ${hovered ? 'var(--accent)' : 'var(--border)'}`,
-        borderRadius: 14, padding: '20px 16px',
-        cursor: 'pointer', transition: 'all 0.15s',
-        display: 'flex', flexDirection: 'column', gap: 10,
-        textAlign: 'center', alignItems: 'center',
-      }}
-    >
+    <div style={{
+      background: 'var(--card)', border: '1.5px solid var(--border)',
+      borderRadius: 14, padding: '20px 16px',
+      display: 'flex', flexDirection: 'column', gap: 12,
+      textAlign: 'center', alignItems: 'center',
+    }}>
       <div style={{
-        width: 48, height: 48, borderRadius: 12,
+        width: 44, height: 44, borderRadius: 12,
         background: 'var(--accent-dim)', border: '1px solid var(--accent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
@@ -302,16 +308,32 @@ function TypeCard({ icon, title, description, note, noteWarning, onClick, isDark
       </div>
       <div>
         <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px', fontFamily: "'Clash Display', sans-serif" }}>{title}</p>
-        <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{description}</p>
+        <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{description}</p>
       </div>
       <span style={{
-        fontSize: 11, fontWeight: 600,
+        fontSize: 10, fontWeight: 600,
         color: noteWarning ? 'var(--warning)' : 'var(--success)',
         background: noteWarning ? 'var(--warning-dim)' : 'var(--success-dim)',
         borderRadius: 6, padding: '3px 8px',
       }}>
         {note}
       </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+        <button onClick={onSignup} style={{
+          width: '100%', padding: '8px 0', borderRadius: 8, border: 'none',
+          background: 'var(--accent)', color: '#fff',
+          fontSize: 12, fontWeight: 700, cursor: 'pointer',
+        }}>
+          Sign up
+        </button>
+        <button onClick={onLogin} style={{
+          width: '100%', padding: '7px 0', borderRadius: 8,
+          border: '1.5px solid var(--border)', background: 'transparent',
+          color: 'var(--text)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        }}>
+          Sign in
+        </button>
+      </div>
     </div>
   );
 }
