@@ -3,10 +3,10 @@ import { ChevronDown, Zap, LogOut, Settings, Menu, X, ChevronRight, Sun, Moon } 
 import useIsMobile from '../../hooks/useIsMobile';
 import { useTheme } from '../../context/ThemeContext';
 
-const COMPANY_LINKS   = ['Dashboard', 'Leads', 'Sequences', 'Batch'];
+const COMPANY_LINKS   = ['Dashboard', 'Leads', 'Sequences', 'Batch', 'Post a Job'];
 const JOBSEEKER_LINKS = ['Dashboard', 'Jobs', 'CV Optimiser', 'Job Matches', 'Applications', 'Outreach', 'Scam Detector'];
 
-export default function Navbar({ activePage, setActivePage, user, userType, onLogout, onSettings }) {
+export default function Navbar({ activePage, setActivePage, user, userType, onLogout, onSettings, userPlan, onPricing }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const isMobile  = useIsMobile();
@@ -72,6 +72,28 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+
+            {/* Pro badge / Upgrade link */}
+            {!isMobile && userPlan === 'pro' && (
+              <div style={{
+                background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+                borderRadius: 6, padding: '3px 9px',
+                fontSize: 11, fontWeight: 700, color: 'var(--accent)',
+                letterSpacing: '0.04em',
+              }}>
+                ✦ PRO
+              </div>
+            )}
+            {!isMobile && userPlan !== 'pro' && (
+              <button onClick={() => onPricing?.()} style={{
+                background: 'var(--accent-dim)', border: '1px solid var(--accent)',
+                borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
+                fontSize: 11, fontWeight: 700, color: 'var(--accent)',
+                letterSpacing: '0.04em',
+              }}>
+                Upgrade
+              </button>
+            )}
 
             {/* Theme toggle — desktop */}
             {!isMobile && (
@@ -198,6 +220,20 @@ export default function Navbar({ activePage, setActivePage, user, userType, onLo
                 {isDark ? <Sun size={15} /> : <Moon size={15} />}
                 {isDark ? 'Light mode' : 'Dark mode'}
               </button>
+              {/* Pricing / Pro */}
+              {userPlan === 'pro' ? (
+                <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>✦ Pro plan active</span>
+                </div>
+              ) : (
+                <button onClick={() => { setMobileOpen(false); onPricing?.(); }} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 20px', background: 'none', border: 'none',
+                  color: 'var(--accent)', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+                }}>
+                  Upgrade to Pro
+                </button>
+              )}
               <button onClick={() => { setMobileOpen(false); onSettings?.(); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '12px 20px', background: 'none', border: 'none',

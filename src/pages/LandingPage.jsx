@@ -54,19 +54,16 @@ const Pill = ({ children, color }) => {
   );
 };
 
-const GradBtn = ({ onClick, children, style = {} }) => {
-  const { colors: c } = useTheme();
-  return (
-    <button onClick={onClick} style={{
-      background: `linear-gradient(135deg, #00D4C8, #00B8AD)`,
-      color: c.bg, border: 'none', borderRadius: 10, padding: '12px 24px',
-      fontSize: 14, fontWeight: 700, cursor: 'pointer',
-      boxShadow: '0 8px 24px rgba(0,212,200,0.3)', ...style,
-    }}>
-      {children}
-    </button>
-  );
-};
+const GradBtn = ({ onClick, children, style = {} }) => (
+  <button onClick={onClick} style={{
+    background: `linear-gradient(135deg, var(--accent), var(--accent-mid))`,
+    color: '#fff', border: 'none', borderRadius: 10, padding: '12px 24px',
+    fontSize: 14, fontWeight: 700, cursor: 'pointer',
+    boxShadow: '0 8px 24px var(--accent-glow)', ...style,
+  }}>
+    {children}
+  </button>
+);
 
 const OutlineBtn = ({ onClick, children, color = '#00D4C8', style = {} }) => (
   <button onClick={onClick} style={{
@@ -383,7 +380,7 @@ function PricingTier({ name, price, period, features, cta, highlight, onGetStart
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
-export default function LandingPage({ onGetStarted }) {
+export default function LandingPage({ onGetStarted, onPricing }) {
   const { colors: c } = useTheme();
   const isMobile = useIsMobile();
   const [howTab,     setHowTab]     = useState('company');
@@ -460,7 +457,7 @@ export default function LandingPage({ onGetStarted }) {
           {/* Desktop nav links — hidden on mobile */}
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-              {[['Features', 'features'], ['How it Works', 'how'], ['Pricing', 'pricing']].map(([l, id]) => (
+              {[['Features', 'features'], ['How it Works', 'how']].map(([l, id]) => (
                 <button key={id} onClick={() => scrollTo(id)}
                   style={{ background: 'none', border: 'none', color: c.mut, fontSize: 14,
                     cursor: 'pointer', transition: 'color 0.15s' }}
@@ -469,6 +466,13 @@ export default function LandingPage({ onGetStarted }) {
                   {l}
                 </button>
               ))}
+              <button onClick={() => onPricing?.()}
+                style={{ background: 'none', border: 'none', color: c.mut, fontSize: 14,
+                  cursor: 'pointer', transition: 'color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = c.txt)}
+                onMouseLeave={e => (e.currentTarget.style.color = c.mut)}>
+                Pricing
+              </button>
             </div>
           )}
 
@@ -498,7 +502,7 @@ export default function LandingPage({ onGetStarted }) {
         {isMobile && mobileMenu && (
           <div style={{ borderTop: `1px solid ${c.brd}`, padding: '12px 20px 20px',
             display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {[['Features', 'features'], ['How it Works', 'how'], ['Pricing', 'pricing']].map(([l, id]) => (
+            {[['Features', 'features'], ['How it Works', 'how']].map(([l, id]) => (
               <button key={id} onClick={() => scrollTo(id)}
                 style={{ background: 'none', border: 'none', color: c.txt, fontSize: 15,
                   cursor: 'pointer', textAlign: 'left', padding: '10px 0',
@@ -506,6 +510,12 @@ export default function LandingPage({ onGetStarted }) {
                 {l}
               </button>
             ))}
+            <button onClick={() => { setMobileMenu(false); onPricing?.(); }}
+              style={{ background: 'none', border: 'none', color: c.txt, fontSize: 15,
+                cursor: 'pointer', textAlign: 'left', padding: '10px 0',
+                borderBottom: `1px solid ${c.brd}` }}>
+              Pricing
+            </button>
             <button onClick={() => { setMobileMenu(false); onGetStarted(); }}
               style={{ background: 'none', border: 'none', color: c.mut, fontSize: 15,
                 cursor: 'pointer', textAlign: 'left', padding: '10px 0' }}>
@@ -844,10 +854,10 @@ export default function LandingPage({ onGetStarted }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <PricingTier onGetStarted={onGetStarted}
                   name="Free" price="₦0" period="" cta="Start Free"
-                  features={['CV upload and tips', 'Scam Detector (5/day)', 'Basic job match suggestions', 'Applications tracker (20 apps)']} />
-                <PricingTier onGetStarted={onGetStarted} highlight
-                  name="Premium" price="₦1,500" period="/month" cta="Go Premium"
-                  features={['AI CV scoring + full rewrite', 'Unlimited scam detection', 'Smart job matching (AI-powered)', 'Outreach assistant (10 emails/month)', 'JD Matcher + keyword analysis', 'Applications tracker (unlimited)']} />
+                  features={['CV upload + AI score out of 100', 'CV vs JD matcher', 'Job listings browsing', 'Application tracker (10 apps)', 'Company research (5/month)', 'Outreach emails (5/month)']} />
+                <PricingTier onGetStarted={onPricing ?? onGetStarted} highlight
+                  name="Pro" price="₦2,000" period="/month" cta="Upgrade to Pro"
+                  features={['Everything in Free', 'Profile visible to hiring companies', 'Unlimited application tracking', 'AI CV rewrite suggestions', 'Priority job alerts', 'Interview prep coach', 'Downloadable CV PDF']} />
               </div>
             </div>
 
@@ -859,11 +869,11 @@ export default function LandingPage({ onGetStarted }) {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <PricingTier onGetStarted={onGetStarted}
-                  name="Starter" price="$29" period="/month" cta="Start Free Trial"
-                  features={['50 company researches/month', 'Full intelligence profiles', '50 AI-written emails', 'Lead tracking & CRM', 'Email sending integration']} />
-                <PricingTier onGetStarted={onGetStarted} highlight
-                  name="Pro" price="$99" period="/month" cta="Start Free Trial"
-                  features={['Unlimited research', 'A/B email variants', 'Follow-up sequences', 'Batch processing (CSV import)', 'Priority support', 'Team seats (5 users)']} />
+                  name="Sales Tool" price="Free" period="" cta="Get Started"
+                  features={['Company research & intelligence', 'AI-written cold emails', 'Lead tracking & CRM', 'Follow-up sequences', 'A/B email variants']} />
+                <PricingTier onGetStarted={onPricing ?? onGetStarted} highlight
+                  name="Post a Job" price="₦2,000" period="/listing" cta="Post a Job"
+                  features={['Verified AI-searchable listing', 'Matched with Pro job seekers', 'Candidate management', 'Active for 30 days', 'Receipt emailed instantly']} />
               </div>
             </div>
           </div>
