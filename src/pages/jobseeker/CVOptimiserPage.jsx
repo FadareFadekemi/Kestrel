@@ -3,6 +3,8 @@ import { FileText, Wand2, Download, Copy, Loader, CheckCircle, Plus, Trash2, Ale
 import useIsMobile from '../../hooks/useIsMobile';
 import { analyseCV, improveSummary, improveBullet, suggestSkills, matchJD } from '../../services/jsApi';
 import { useTheme } from '../../context/ThemeContext';
+import { usePaywall } from '../../context/PaywallContext';
+import UsageIndicator from '../../components/UI/UsageIndicator';
 
 const JS_PROFILE_KEY = 'kestrel_jobseeker_profile';
 const CV_BUILDER_KEY = 'kestrel_cv_builder';
@@ -53,6 +55,7 @@ function scoreColor(s) { return s >= 70 ? '#34d399' : s >= 40 ? '#00D4C8' : '#f8
 export default function CVOptimiserPage() {
   const isMobile  = useIsMobile();
   const { colors: c } = useTheme();
+  const { checkAndProceed } = usePaywall();
   const profile   = readProfile();
   const targetRole = profile.targetRole || 'your target role';
 
@@ -180,6 +183,8 @@ export default function CVOptimiserPage() {
       return;
     }
     setAnalysisError('');
+    const allowed = await checkAndProceed('cv_optimiser', null);
+    if (!allowed) return;
     setAnalysing(true);
     setAnalysisResult(null);
     try {
@@ -416,8 +421,11 @@ export default function CVOptimiserPage() {
               onFocus={onFocus} onBlur={onBlur}
               placeholder="Copy and paste the full text of your CV here. The AI will score it across Content, Format, Keywords, and Length — and give you specific rewrite suggestions."
               rows={10} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <span style={{ fontSize: 11, color: '#264040' }}>{cvText.length} chars</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 11, color: '#264040' }}>{cvText.length} chars</span>
+                <UsageIndicator feature="cv_optimiser" />
+              </div>
               <button onClick={handleAnalyse} disabled={analysing}
                 style={{ display: 'flex', alignItems: 'center', gap: 7, background: analysing ? 'rgba(0,212,200,0.08)' : 'rgba(0,212,200,0.15)', border: '1px solid rgba(0,212,200,0.3)', borderRadius: 8, padding: '9px 18px', color: '#00D4C8', fontSize: 13, fontWeight: 600, cursor: analysing ? 'not-allowed' : 'pointer' }}>
                 {analysing ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={14} />}

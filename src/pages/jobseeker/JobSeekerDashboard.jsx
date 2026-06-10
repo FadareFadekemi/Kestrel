@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FileText, Send, TrendingUp, Briefcase, ArrowUpRight, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { FileText, Send, TrendingUp, Briefcase, ArrowUpRight, CheckCircle, AlertCircle, Info, EyeOff, Star } from 'lucide-react';
 import ScoreRing from '../../components/UI/ScoreRing';
 import EmptyState from '../../components/UI/EmptyState';
 import useIsMobile from '../../hooks/useIsMobile';
@@ -50,9 +50,10 @@ function healthColor(score) {
   return '#ef4444';
 }
 
-export default function JobSeekerDashboard({ user, setActivePage }) {
+export default function JobSeekerDashboard({ user, setActivePage, userPlan, onOpenPaywall }) {
   const isMobile = useIsMobile();
   const { colors: c } = useTheme();
+  const isPro = userPlan === 'pro';
 
   const profile = useMemo(() => readJSON(JS_PROFILE_KEY, {}), []);
   const apps    = useMemo(() => readJSON(JS_APPS_KEY, []), []);
@@ -74,6 +75,31 @@ export default function JobSeekerDashboard({ user, setActivePage }) {
 
   return (
     <div style={{ padding: isMobile ? '20px 16px' : '28px 32px', overflowY: 'auto', height: '100%' }}>
+
+      {/* Profile visibility banner — free users only */}
+      {!isPro && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          background: 'rgba(0,184,173,0.06)', border: '1px solid rgba(0,184,173,0.2)',
+          borderRadius: 12, padding: '14px 16px', marginBottom: 20,
+        }}>
+          <EyeOff size={16} color="var(--accent)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: '0 0 3px' }}>
+              Your profile is hidden from companies
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+              Upgrade to Pro to appear in company talent pool searches and get matched with hiring managers directly.
+            </p>
+          </div>
+          <button
+            onClick={() => onOpenPaywall?.('company-visibility')}
+            style={{ flexShrink: 0, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}
+          >
+            <Star size={12} fill="currentColor" /> Go Pro
+          </button>
+        </div>
+      )}
 
       {/* Page title */}
       <div style={{ marginBottom: 28 }}>

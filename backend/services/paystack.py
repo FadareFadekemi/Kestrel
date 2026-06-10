@@ -65,14 +65,14 @@ async def verify_transaction(reference: str) -> dict:
         return {"ok": False, "error": str(e)}
 
 
-async def cancel_subscription(subscription_code: str) -> dict:
+async def cancel_subscription(subscription_code: str, email_token: str = "") -> dict:
     """Disable a Paystack subscription."""
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.post(
                 f"{BASE_URL}/subscription/disable",
                 headers=_HEADERS(),
-                json={"code": subscription_code, "token": ""},
+                json={"code": subscription_code, "token": email_token},
             )
         data = r.json()
         if r.status_code == 200 and data.get("status"):
@@ -101,6 +101,61 @@ async def create_customer(email: str, name: str = "") -> dict:
         if r.status_code in (200, 201) and data.get("status"):
             return {"ok": True, "data": data["data"]}
         return {"ok": False, "error": data.get("message", "Customer creation failed")}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+async def get_or_create_plan() -> dict:
+    """Get the Pro plan code. Creates one in Paystack if PAYSTACK_PLAN_CODE env var is not set."""
+    plan_code = os.getenv("PAYSTACK_PLAN_CODE", "").strip()
+    if plan_code:
+        return {"ok": True, "plan_code": plan_code}
+
+    payload = {
+        "name": "techcori Pro Monthly",
+        "interval": "monthly",
+        "amount": 200000,  # ₦2,000 in kobo
+        "currency": "NGN",
+        "description": "techcori Pro — unlimited AI career tools",
+        "send_invoices": True,
+        "send_sms": False,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE_URL}/plan", headers=_HEADERS(), json=payload)
+        data = r.json()
+        if r.status_code in (200, 201) and data.get("status"):
+            return {"ok": True, "plan_code": data["data"]["plan_code"]}
+        return {"ok": False, "error": data.get("message", "Plan creation failed")}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+async def initialize_subscription_transaction(
+    email: str,
+    plan_code: str,
+    reference: str,
+    callback_url: str = "",
+    metadata: dict | None = None,
+) -> dict:
+    """Initialize a Paystack transaction bound to a recurring plan."""
+    payload: dict = {
+        "email": email,
+        "amount": 200000,
+        "plan": plan_code,
+        "reference": reference,
+    }
+    if callback_url:
+        payload["callback_url"] = callback_url
+    if metadata:
+        payload["metadata"] = metadata
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{BASE_URL}/transaction/initialize", headers=_HEADERS(), json=payload)
+        data = r.json()
+        if r.status_code == 200 and data.get("status"):
+            return {"ok": True, "data": data["data"]}
+        return {"ok": False, "error": data.get("message", "Failed to initialize subscription")}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

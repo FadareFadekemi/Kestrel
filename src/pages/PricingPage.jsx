@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Zap, Briefcase, Building2, Star, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { createSubscription } from '../services/usageApi';
 
 const JS_FREE_FEATURES = [
   'CV upload and AI score out of 100',
@@ -35,7 +36,26 @@ const COMPANY_FEATURES = [
 
 export default function PricingPage({ onBack, onGetStarted, user, userPlan }) {
   const { isDark, colors: c } = useTheme();
-  const pageRef = useRef(null);
+  const pageRef   = useRef(null);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError,   setSubError]   = useState('');
+
+  async function handleProUpgrade() {
+    if (!user) { onGetStarted?.(); return; }
+    if (userPlan === 'pro') return;
+    setSubLoading(true);
+    setSubError('');
+    try {
+      const data = await createSubscription();
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url;
+      }
+    } catch (err) {
+      setSubError(err.message || 'Could not start subscription. Please try again.');
+    } finally {
+      setSubLoading(false);
+    }
+  }
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -155,14 +175,17 @@ export default function PricingPage({ onBack, onGetStarted, user, userPlan }) {
             badge="Most Popular"
             features={JS_PRO_FEATURES}
             cta={
-              !user ? 'Get Started'
+              subLoading ? 'Redirecting…'
+              : !user ? 'Get Started'
               : userPlan === 'pro' ? '✦ Your plan'
               : 'Upgrade to Pro'
             }
             ctaStyle="primary"
-            onCta={onGetStarted}
+            onCta={userPlan === 'pro' ? null : handleProUpgrade}
+            ctaDisabled={subLoading || userPlan === 'pro'}
             highlight
             isDark={isDark}
+            error={subError}
           />
 
           {/* Company */}
@@ -194,7 +217,7 @@ export default function PricingPage({ onBack, onGetStarted, user, userPlan }) {
   );
 }
 
-function PricingCard({ icon, label, name, price, period, badge, features, cta, ctaStyle, onCta, highlight, isDark, className }) {
+function PricingCard({ icon, label, name, price, period, badge, features, cta, ctaStyle, onCta, ctaDisabled, highlight, isDark, className, error }) {
   const cardBg = highlight
     ? (isDark ? '#0D2020' : '#F0FAF8')
     : 'var(--card)';
@@ -275,26 +298,26 @@ function PricingCard({ icon, label, name, price, period, badge, features, cta, c
       {/* CTA */}
       <button
         onClick={onCta}
-        disabled={!onCta}
+        disabled={!onCta || ctaDisabled}
         style={{
           width: '100%', padding: '13px 0', borderRadius: 12,
-          fontSize: 15, fontWeight: 700, cursor: onCta ? 'pointer' : 'default',
+          fontSize: 15, fontWeight: 700, cursor: (onCta && !ctaDisabled) ? 'pointer' : 'default',
           border: ctaStyle === 'primary' ? 'none' : '1.5px solid var(--border)',
           background: ctaStyle === 'primary' ? 'var(--accent)' : 'transparent',
           color: ctaStyle === 'primary' ? '#fff' : 'var(--text)',
           transition: 'all 0.15s',
-          opacity: !onCta ? 0.7 : 1,
+          opacity: (!onCta || ctaDisabled) ? 0.7 : 1,
           letterSpacing: '-0.2px',
         }}
         onMouseEnter={e => {
-          if (!onCta) return;
+          if (!onCta || ctaDisabled) return;
           if (ctaStyle === 'secondary') {
             e.currentTarget.style.borderColor = 'var(--accent)';
             e.currentTarget.style.color = 'var(--accent)';
           }
         }}
         onMouseLeave={e => {
-          if (!onCta) return;
+          if (!onCta || ctaDisabled) return;
           if (ctaStyle === 'secondary') {
             e.currentTarget.style.borderColor = 'var(--border)';
             e.currentTarget.style.color = 'var(--text)';
@@ -303,6 +326,10 @@ function PricingCard({ icon, label, name, price, period, badge, features, cta, c
       >
         {cta}
       </button>
+
+      {error && (
+        <p style={{ color: 'var(--error)', fontSize: 12, textAlign: 'center', marginTop: 10, marginBottom: 0 }}>{error}</p>
+      )}
     </div>
   );
 }

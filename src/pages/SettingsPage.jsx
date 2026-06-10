@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, CheckCircle, AlertCircle, User, Building, FileText, Zap, Globe,
-         ShieldCheck, ShieldAlert, Mail, Link, Hash, RefreshCw, ExternalLink } from 'lucide-react';
+         ShieldCheck, ShieldAlert, Mail, Link, Hash, RefreshCw, ExternalLink,
+         CreditCard, Star, XCircle } from 'lucide-react';
 import { authFetch } from '../services/authApi';
 import useIsMobile from '../hooks/useIsMobile';
 import { useTheme } from '../context/ThemeContext';
+import { getSubscriptionStatus, cancelSubscription } from '../services/usageApi';
 
 export default function SettingsPage({ user, onUserUpdated, userPlan, onPricing }) {
   const { colors: c } = useTheme();
@@ -29,6 +31,39 @@ export default function SettingsPage({ user, onUserUpdated, userPlan, onPricing 
   const [verifyErr,        setVerifyErr]        = useState('');
   const [verifyLoading,    setVerifyLoading]    = useState('');
   const [dnsInstructions,  setDnsInstructions]  = useState(null);
+
+  // Billing state
+  const [subStatus,        setSubStatus]        = useState(null);
+  const [billingLoading,   setBillingLoading]   = useState(true);
+  const [cancelLoading,    setCancelLoading]    = useState(false);
+  const [cancelMsg,        setCancelMsg]        = useState('');
+  const [cancelErr,        setCancelErr]        = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const isJobSeeker = user?.accountType === 'jobseeker';
+
+  useEffect(() => {
+    if (!isJobSeeker) return;
+    getSubscriptionStatus()
+      .then(setSubStatus)
+      .catch(() => {})
+      .finally(() => setBillingLoading(false));
+  }, [isJobSeeker, userPlan]);
+
+  async function handleCancelSubscription() {
+    setCancelLoading(true); setCancelErr(''); setCancelMsg('');
+    try {
+      const res = await cancelSubscription();
+      setCancelMsg(res.message || 'Subscription cancelled. Access continues until end of period.');
+      setShowCancelConfirm(false);
+      const updated = await getSubscriptionStatus();
+      setSubStatus(updated);
+    } catch (err) {
+      setCancelErr(err.message || 'Cancellation failed. Please try again.');
+    } finally {
+      setCancelLoading(false);
+    }
+  }
 
   async function sendVerificationEmail() {
     setVerifyLoading('email'); setVerifyMsg(''); setVerifyErr('');
@@ -331,6 +366,116 @@ export default function SettingsPage({ user, onUserUpdated, userPlan, onPricing 
           />
         </div>
       </div>
+
+      {/* ── Billing (job seekers only) ───────────────────────────────────── */}
+      {isJobSeeker && (
+        <div style={{ marginTop: 40, borderTop: '1px solid var(--border)', paddingTop: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <CreditCard size={16} color="var(--accent)" />
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Billing</h2>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.6 }}>
+            Manage your Pro subscription and view payment history.
+          </p>
+
+          {billingLoading ? (
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+              <p style={{ color: 'var(--muted)', fontSize: 13, margin: 0 }}>Loading billing info…</p>
+            </div>
+          ) : (
+            <>
+              {/* Plan card */}
+              <div style={{ background: 'var(--card)', border: `1px solid ${userPlan === 'pro' ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      {userPlan === 'pro' ? <Star size={15} color="var(--accent)" fill="var(--accent)" /> : <CreditCard size={15} color="var(--muted)" />}
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                        {userPlan === 'pro' ? 'Pro' : 'Free'} Plan
+                      </span>
+                      {userPlan === 'pro' && (
+                        <span style={{ background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '2px 8px' }}>Active</span>
+                      )}
+                    </div>
+                    {subStatus?.renewal_date && userPlan === 'pro' && subStatus?.status !== 'cancelled' && (
+                      <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
+                        Renews {new Date(subStatus.renewal_date).toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    )}
+                    {subStatus?.status === 'cancelled' && subStatus?.renewal_date && (
+                      <p style={{ fontSize: 12, color: '#f59e0b', margin: 0 }}>
+                        Access until {new Date(subStatus.renewal_date).toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    )}
+                    {userPlan === 'free' && (
+                      <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>5 uses/month per AI feature</p>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {userPlan !== 'pro' && (
+                      <button onClick={onPricing} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Star size={13} fill="currentColor" /> Upgrade to Pro
+                      </button>
+                    )}
+                    {userPlan === 'pro' && subStatus?.status !== 'cancelled' && !showCancelConfirm && (
+                      <button onClick={() => setShowCancelConfirm(true)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 12, color: 'var(--muted)', cursor: 'pointer' }}>
+                        Cancel subscription
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cancel confirmation */}
+                {showCancelConfirm && (
+                  <div style={{ marginTop: 16, background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                    <p style={{ fontSize: 13, color: 'var(--text)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                      Are you sure? You'll keep Pro access until the end of your current billing period.
+                    </p>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button onClick={handleCancelSubscription} disabled={cancelLoading}
+                        style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: cancelLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <XCircle size={13} /> {cancelLoading ? 'Cancelling…' : 'Yes, cancel'}
+                      </button>
+                      <button onClick={() => setShowCancelConfirm(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
+                        Keep Pro
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {cancelMsg && <p style={{ fontSize: 13, color: 'var(--success)', marginTop: 12, marginBottom: 0 }}>{cancelMsg}</p>}
+                {cancelErr && <p style={{ fontSize: 13, color: 'var(--error)', marginTop: 12, marginBottom: 0 }}>{cancelErr}</p>}
+              </div>
+
+              {/* Billing history */}
+              {subStatus?.billing_history?.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>Payment History</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {subStatus.billing_history.map((log) => (
+                      <div key={log.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', flexWrap: 'wrap', gap: 8 }}>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', margin: 0 }}>₦{(log.amountNgn || 0).toLocaleString()}</p>
+                          <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>
+                            {new Date(log.createdAt).toLocaleDateString('en-NG', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
+                        <span style={{ background: 'var(--success-dim)', color: 'var(--success)', border: '1px solid var(--success)', fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '3px 8px', textTransform: 'uppercase' }}>
+                          {log.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {subStatus?.billing_history?.length === 0 && userPlan === 'free' && (
+                <p style={{ fontSize: 13, color: 'var(--muted)' }}>No payment history yet.</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

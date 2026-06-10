@@ -26,6 +26,7 @@ import PostJobPage from './pages/PostJobPage';
 import { isLoggedIn, logout, fetchMe, setAccountType } from './services/authApi';
 import { fetchLeads, saveLead, updateLead as updateLeadApi } from './services/leadsApi';
 import { getUserPlan } from './services/paymentApi';
+import { usePaywall } from './context/PaywallContext';
 import './index.css';
 
 const VALID_TYPES = ['company', 'jobseeker'];
@@ -63,8 +64,9 @@ function AppInner() {
     const p = new URLSearchParams(window.location.search);
     return p.get('reset_token') || null;
   });
-  const [userPlan,       setUserPlan]       = useState('free');
-  const [paywallFeature, setPaywallFeature] = useState(null);
+  const [userPlan,          setUserPlan]          = useState('free');
+  const [paywallFeature,    setPaywallFeature]    = useState(null);
+  const [paywallUsageInfo,  setPaywallUsageInfo]  = useState(null);
 
   const historyReady = useRef(false);
 
@@ -362,19 +364,45 @@ function AppInner() {
           {renderPage()}
         </main>
 
-        {/* Paywall modal — rendered at app level so it's always on top */}
-        {paywallFeature && (
-          <PaywallModal
-            feature={paywallFeature}
-            user={user}
-            onClose={() => setPaywallFeature(null)}
-            onUpgradeSuccess={() => {
-              setPaywallFeature(null);
-              refreshUserPlan();
-            }}
-          />
-        )}
+        {/* Paywall modal reads from context so checkAndProceed can trigger it */}
+        <PaywallModalBridge
+          appFeature={paywallFeature}
+          appUsageInfo={paywallUsageInfo}
+          user={user}
+          onAppClose={() => { setPaywallFeature(null); setPaywallUsageInfo(null); }}
+          onUpgradeSuccess={refreshUserPlan}
+        />
       </div>
     </PaywallProvider>
+  );
+}
+
+function PaywallModalBridge({ appFeature, appUsageInfo, user, onAppClose, onUpgradeSuccess }) {
+  const { paywallFeature, paywallUsageInfo, closePaywall, refreshUsage } = usePaywall();
+  const feature   = paywallFeature || appFeature;
+  const usageInfo = paywallUsageInfo || appUsageInfo;
+
+  if (!feature) return null;
+
+  function handleClose() {
+    closePaywall();
+    onAppClose();
+  }
+
+  async function handleUpgradeSuccess() {
+    closePaywall();
+    onAppClose();
+    await refreshUsage();
+    onUpgradeSuccess?.();
+  }
+
+  return (
+    <PaywallModal
+      feature={feature}
+      usageInfo={usageInfo}
+      user={user}
+      onClose={handleClose}
+      onUpgradeSuccess={handleUpgradeSuccess}
+    />
   );
 }

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import Integer, String, Boolean, Text, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -60,6 +61,12 @@ class User(Base):
     )
     job_listings: Mapped[list["JobListing"]] = relationship(
         "JobListing", back_populates="user", cascade="all, delete-orphan"
+    )
+    subscription: Mapped[Optional["Subscription"]] = relationship(
+        "Subscription", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    usage_records: Mapped[list["UsageTracking"]] = relationship(
+        "UsageTracking", back_populates="user", cascade="all, delete-orphan"
     )
 
     def to_dict(self):
@@ -319,3 +326,45 @@ class JobListing(Base):
         if include_screening:
             d["aiScamFlags"] = json.loads(self.ai_scam_flags or "[]")
         return d
+
+
+class UsageTracking(Base):
+    __tablename__ = "usage_tracking"
+    __table_args__ = (UniqueConstraint("user_id", "feature_name", "period_month", name="uq_usage_tracking"),)
+
+    id:           Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:      Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    feature_name: Mapped[str]      = mapped_column(String(50))   # cv_optimiser | company_research | outreach_assistant
+    usage_count:  Mapped[int]      = mapped_column(Integer, default=0)
+    period_month: Mapped[str]      = mapped_column(String(7))    # YYYY-MM
+    created_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at:   Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    user: Mapped["User"] = relationship("User", back_populates="usage_records")
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id:                         Mapped[int]      = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id:                    Mapped[int]      = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    plan:                       Mapped[str]      = mapped_column(String(20), default="free")   # free | pro
+    paystack_customer_code:     Mapped[str]      = mapped_column(String(100), default="")
+    paystack_subscription_code: Mapped[str]      = mapped_column(String(100), default="")
+    paystack_email_token:       Mapped[str]      = mapped_column(String(200), default="")
+    status:                     Mapped[str]      = mapped_column(String(20), default="active")  # active | cancelled | expired | past_due
+    current_period_start:       Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    current_period_end:         Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at:                 Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at:                 Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    user: Mapped["User"] = relationship("User", back_populates="subscription")
+
+    def to_dict(self):
+        return {
+            "plan":                   self.plan,
+            "status":                 self.status,
+            "currentPeriodStart":     self.current_period_start.isoformat() if self.current_period_start else None,
+            "currentPeriodEnd":       self.current_period_end.isoformat() if self.current_period_end else None,
+            "paystackSubscriptionCode": self.paystack_subscription_code,
+        }

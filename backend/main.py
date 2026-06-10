@@ -33,6 +33,38 @@ log = logging.getLogger("kestrel")
 # ── Rate limiter ──────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from database import SessionLocal
+
+_scheduler = AsyncIOScheduler()
+
+
+def _run_monthly_maintenance():
+    """Expire subscriptions whose period_end has passed and downgrade User plan."""
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        expired = (
+            db.query(models.User)
+            .filter(
+                models.User.js_plan == "pro",
+                models.User.js_plan_expires_at.isnot(None),
+                models.User.js_plan_expires_at < now,
+                models.User.js_plan_grace_until < now,
+            )
+            .all()
+        )
+        for u in expired:
+            u.js_plan = "free"
+            sub = db.query(models.Subscription).filter(models.Subscription.user_id == u.id).first()
+            if sub and sub.status not in ("cancelled",):
+                sub.status = "expired"
+                sub.plan = "free"
+                sub.updated_at = now
+        if expired:
+            db.commit()
+            log.info("Monthly maintenance: downgraded %d expired Pro users", len(expired))
+
+
 @asynccontextmanager
 async def lifespan(app):
     # ── Startup security checks ───────────────────────────────────────────────
@@ -51,7 +83,13 @@ async def lifespan(app):
         print("Database tables ready.")
     except Exception as e:
         print(f"DB init warning: {e}")
+
+    _scheduler.add_job(_run_monthly_maintenance, "cron", day=1, hour=0, minute=5, id="monthly_maintenance", replace_existing=True)
+    _scheduler.start()
+
     yield
+
+    _scheduler.shutdown(wait=False)
 
 app = FastAPI(title="Kestrel API", docs_url=None, redoc_url=None, lifespan=lifespan)
 app.state.limiter = limiter
@@ -708,11 +746,9 @@ async def js_research(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    current_user.reset_usage_if_needed()
-    if not current_user.is_pro() and current_user.js_research_this_month >= 5:
-        raise HTTPException(status_code=403, detail="Monthly company research limit reached. Upgrade to Pro for unlimited research.")
-    current_user.js_research_this_month += 1
-    db.commit()
+    allowed, payload = _check_and_increment(db, current_user, "company_research")
+    if not allowed:
+        raise HTTPException(status_code=403, detail=payload)
 
     async def stream():
         from services.js_outreach import run_js_research
@@ -741,11 +777,9 @@ async def js_email(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    current_user.reset_usage_if_needed()
-    if not current_user.is_pro() and current_user.js_outreach_this_month >= 5:
-        raise HTTPException(status_code=403, detail="Monthly outreach email limit reached. Upgrade to Pro for unlimited emails.")
-    current_user.js_outreach_this_month += 1
-    db.commit()
+    allowed, payload = _check_and_increment(db, current_user, "outreach_assistant")
+    if not allowed:
+        raise HTTPException(status_code=403, detail=payload)
 
     async def stream():
         from services.js_outreach import run_js_email
@@ -769,8 +803,13 @@ async def js_followup(
 async def js_cv_analyse(
     request: Request,
     req: JSCVAnalysisRequest,
-    _: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    allowed, payload = _check_and_increment(db, current_user, "cv_optimiser")
+    if not allowed:
+        raise HTTPException(status_code=403, detail=payload)
+
     async def stream():
         from services.js_cv import run_cv_analysis
         async for chunk in run_cv_analysis(req.cv_text):
@@ -1304,6 +1343,349 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
                 )
 
     return {"status": "ok"}
+
+
+# ── Usage tracking ───────────────────────────────────────────────────────────
+
+USAGE_FEATURES  = {"cv_optimiser", "company_research", "outreach_assistant"}
+FREE_LIMIT      = 5
+
+FEATURE_LABELS = {
+    "cv_optimiser":        "CV Optimiser",
+    "company_research":    "Company Research",
+    "outreach_assistant":  "Outreach Assistant",
+}
+
+
+def _get_or_create_usage(db: Session, user_id: int, feature: str, period: str) -> models.UsageTracking:
+    record = (
+        db.query(models.UsageTracking)
+        .filter(
+            models.UsageTracking.user_id     == user_id,
+            models.UsageTracking.feature_name == feature,
+            models.UsageTracking.period_month == period,
+        )
+        .first()
+    )
+    if not record:
+        record = models.UsageTracking(
+            user_id=user_id, feature_name=feature,
+            period_month=period, usage_count=0,
+        )
+        db.add(record)
+        db.flush()
+    return record
+
+
+def _check_and_increment(db: Session, user: models.User, feature: str) -> tuple[bool, dict]:
+    """Returns (allowed, response_dict). Increments count if allowed."""
+    period = datetime.now(timezone.utc).strftime("%Y-%m")
+    record = _get_or_create_usage(db, user.id, feature, period)
+
+    if user.is_pro():
+        record.usage_count  += 1
+        record.updated_at    = datetime.now(timezone.utc)
+        db.commit()
+        return True, {"allowed": True, "feature": feature, "used": record.usage_count, "limit": None}
+
+    if record.usage_count >= FREE_LIMIT:
+        db.commit()
+        return False, {
+            "allowed":     False,
+            "feature":     feature,
+            "feature_label": FEATURE_LABELS.get(feature, feature),
+            "used":        record.usage_count,
+            "limit":       FREE_LIMIT,
+            "upgrade_url": "/pricing",
+        }
+
+    record.usage_count  += 1
+    record.updated_at    = datetime.now(timezone.utc)
+    db.commit()
+    return True, {
+        "allowed":   True,
+        "feature":   feature,
+        "used":      record.usage_count,
+        "limit":     FREE_LIMIT,
+        "remaining": FREE_LIMIT - record.usage_count,
+    }
+
+
+@app.get("/api/usage/status")
+async def usage_status(
+    db:           Session       = Depends(get_db),
+    current_user: models.User   = Depends(get_current_user),
+):
+    period = datetime.now(timezone.utc).strftime("%Y-%m")
+    features = {}
+    for feat in USAGE_FEATURES:
+        record = _get_or_create_usage(db, current_user.id, feat, period)
+        db.commit()
+        if current_user.is_pro():
+            features[feat] = {"used": record.usage_count, "limit": None, "remaining": None}
+        else:
+            features[feat] = {
+                "used":      record.usage_count,
+                "limit":     FREE_LIMIT,
+                "remaining": max(0, FREE_LIMIT - record.usage_count),
+            }
+    return {
+        "plan":    current_user.js_plan,
+        "is_pro":  current_user.is_pro(),
+        "period":  period,
+        "features": features,
+    }
+
+
+class UsageIncrementRequest(BaseModel):
+    feature: str
+
+
+@app.post("/api/usage/increment")
+async def usage_increment(
+    req:          UsageIncrementRequest,
+    db:           Session       = Depends(get_db),
+    current_user: models.User   = Depends(get_current_user),
+):
+    if req.feature not in USAGE_FEATURES:
+        raise HTTPException(status_code=400, detail=f"Unknown feature: {req.feature}")
+    allowed, payload = _check_and_increment(db, current_user, req.feature)
+    if not allowed:
+        raise HTTPException(status_code=403, detail=payload)
+    return payload
+
+
+# ── Subscription (recurring billing) ─────────────────────────────────────────
+
+def _get_or_create_subscription(db: Session, user: models.User) -> models.Subscription:
+    sub = db.query(models.Subscription).filter(models.Subscription.user_id == user.id).first()
+    if not sub:
+        sub = models.Subscription(
+            user_id=user.id,
+            plan=user.js_plan,
+            paystack_customer_code=user.paystack_customer_code,
+        )
+        db.add(sub)
+        db.flush()
+    return sub
+
+
+@app.post("/api/subscription/create")
+@limiter.limit("10/minute")
+async def create_subscription(
+    request:      Request,
+    db:           Session       = Depends(get_db),
+    current_user: models.User   = Depends(get_current_user),
+):
+    if current_user.is_pro():
+        raise HTTPException(status_code=400, detail="You are already on the Pro plan")
+
+    from services.paystack import create_customer, get_or_create_plan, initialize_subscription_transaction, PAYSTACK_PUBLIC_KEY
+
+    if not current_user.paystack_customer_code:
+        cust = await create_customer(current_user.email, current_user.name)
+        if cust["ok"]:
+            current_user.paystack_customer_code = cust["data"]["customer_code"]
+            sub = _get_or_create_subscription(db, current_user)
+            sub.paystack_customer_code = current_user.paystack_customer_code
+            db.commit()
+
+    plan_result = await get_or_create_plan()
+    if not plan_result["ok"]:
+        raise HTTPException(status_code=502, detail="Could not set up billing plan. Please try again.")
+
+    reference    = _generate_reference("subpro")
+    frontend_url = os.getenv("FRONTEND_URL", "")
+    callback_url = f"{frontend_url}/subscription/callback" if frontend_url.startswith("http") else ""
+
+    result = await initialize_subscription_transaction(
+        email=current_user.email,
+        plan_code=plan_result["plan_code"],
+        reference=reference,
+        callback_url=callback_url,
+        metadata={"user_id": current_user.id, "payment_type": "js_pro"},
+    )
+    if not result["ok"]:
+        raise HTTPException(status_code=502, detail=result["error"])
+
+    _log_payment(db, current_user.id, 200000, reference, "initiate", "js_pro", "pending")
+
+    return {
+        "authorization_url": result["data"]["authorization_url"],
+        "reference":         reference,
+        "public_key":        PAYSTACK_PUBLIC_KEY,
+        "email":             current_user.email,
+        "amount":            200000,
+    }
+
+
+@app.post("/api/subscription/webhook")
+async def subscription_webhook(request: Request, db: Session = Depends(get_db)):
+    from services.paystack import verify_webhook_signature
+
+    payload_bytes = await request.body()
+    signature     = request.headers.get("x-paystack-signature", "")
+
+    if not verify_webhook_signature(payload_bytes, signature):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    try:
+        event_data = json.loads(payload_bytes)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event = event_data.get("event", "")
+    data  = event_data.get("data", {})
+    now   = datetime.now(timezone.utc)
+
+    if event == "subscription.create":
+        email             = data.get("customer", {}).get("email", "")
+        subscription_code = data.get("subscription_code", "")
+        email_token       = data.get("email_token", "")
+        if email and subscription_code:
+            user = db.query(models.User).filter(models.User.email == email).first()
+            if user:
+                user.js_plan                    = "pro"
+                user.js_plan_expires_at         = now + timedelta(days=30)
+                user.js_plan_grace_until        = now + timedelta(days=33)
+                user.paystack_subscription_code = subscription_code
+                sub = _get_or_create_subscription(db, user)
+                sub.plan                        = "pro"
+                sub.status                      = "active"
+                sub.paystack_subscription_code  = subscription_code
+                sub.paystack_email_token        = email_token
+                sub.current_period_start        = now
+                sub.current_period_end          = now + timedelta(days=30)
+                sub.updated_at                  = now
+                db.commit()
+
+    elif event == "subscription.disable":
+        email = data.get("customer", {}).get("email", "")
+        if email:
+            user = db.query(models.User).filter(models.User.email == email).first()
+            if user:
+                user.js_plan                    = "free"
+                user.paystack_subscription_code = ""
+                user.js_plan_expires_at         = None
+                sub = db.query(models.Subscription).filter(models.Subscription.user_id == user.id).first()
+                if sub:
+                    sub.plan                        = "free"
+                    sub.status                      = "cancelled"
+                    sub.paystack_subscription_code  = ""
+                    sub.updated_at                  = now
+                db.commit()
+
+    elif event == "charge.success":
+        email        = data.get("customer", {}).get("email", "")
+        amount_kobo  = data.get("amount", 0)
+        reference    = data.get("reference", "")
+        payment_type = data.get("metadata", {}).get("payment_type", "")
+        if email and payment_type == "js_pro" and amount_kobo >= 200000:
+            user = db.query(models.User).filter(models.User.email == email).first()
+            if user:
+                entry = _log_payment(db, user.id, amount_kobo, reference, "charge.success", "js_pro", "success")
+                if entry:
+                    user.js_plan             = "pro"
+                    user.js_plan_expires_at  = now + timedelta(days=30)
+                    user.js_plan_grace_until = now + timedelta(days=33)
+                    sub = _get_or_create_subscription(db, user)
+                    sub.plan                 = "pro"
+                    sub.status               = "active"
+                    sub.current_period_start = now
+                    sub.current_period_end   = now + timedelta(days=30)
+                    sub.updated_at           = now
+                    db.commit()
+
+    elif event == "invoice.payment_failed":
+        email       = data.get("customer", {}).get("email", "")
+        amount_kobo = data.get("amount", 0)
+        reference   = data.get("reference") or data.get("id", "")
+        if email:
+            user = db.query(models.User).filter(models.User.email == email).first()
+            if user and user.js_plan == "pro":
+                user.js_plan_grace_until = now + timedelta(days=3)
+                sub = db.query(models.Subscription).filter(models.Subscription.user_id == user.id).first()
+                if sub:
+                    sub.status     = "past_due"
+                    sub.updated_at = now
+                db.commit()
+                _log_payment(db, user.id, amount_kobo, str(reference or f"fail_{email}"),
+                             "invoice.payment_failed", "js_pro", "failed")
+                from services.email_sender import send_email
+                await send_email(
+                    email,
+                    "techcori Pro payment failed",
+                    f"Hi {user.name or 'there'},\n\n"
+                    "We couldn't process your Pro subscription renewal.\n\n"
+                    "Your account remains active for 3 more days. Please update your payment method "
+                    "or contact support@techcori.com.\n\ntechcori team",
+                )
+
+    return {"status": "ok"}
+
+
+@app.post("/api/subscription/cancel")
+async def cancel_subscription_endpoint(
+    db:           Session       = Depends(get_db),
+    current_user: models.User   = Depends(get_current_user),
+):
+    if not current_user.is_pro():
+        raise HTTPException(status_code=400, detail="No active Pro subscription to cancel")
+
+    sub   = db.query(models.Subscription).filter(models.Subscription.user_id == current_user.id).first()
+    code  = (sub.paystack_subscription_code if sub else "") or current_user.paystack_subscription_code
+    token = sub.paystack_email_token if sub else ""
+
+    if code:
+        from services.paystack import cancel_subscription
+        result = await cancel_subscription(code, token)
+        if not result["ok"]:
+            log.warning("Paystack cancel_subscription failed: %s", result.get("error"))
+
+    if sub:
+        sub.status     = "cancelled"
+        sub.updated_at = datetime.now(timezone.utc)
+    current_user.paystack_subscription_code = ""
+    db.commit()
+
+    period_end = (sub.current_period_end if sub and sub.current_period_end else current_user.js_plan_expires_at)
+    return {
+        "message":      "Subscription cancelled. You keep Pro access until the end of your billing period.",
+        "access_until": period_end.isoformat() if period_end else None,
+    }
+
+
+@app.get("/api/subscription/status")
+async def subscription_status(
+    db:           Session       = Depends(get_db),
+    current_user: models.User   = Depends(get_current_user),
+):
+    sub  = db.query(models.Subscription).filter(models.Subscription.user_id == current_user.id).first()
+    logs = (
+        db.query(models.PaymentLog)
+        .filter(
+            models.PaymentLog.user_id      == current_user.id,
+            models.PaymentLog.payment_type == "js_pro",
+            models.PaymentLog.status       == "success",
+        )
+        .order_by(models.PaymentLog.created_at.desc())
+        .limit(20)
+        .all()
+    )
+    renewal_date = None
+    if sub and sub.current_period_end:
+        renewal_date = sub.current_period_end.isoformat()
+    elif current_user.js_plan_expires_at:
+        renewal_date = current_user.js_plan_expires_at.isoformat()
+
+    return {
+        "plan":            current_user.js_plan,
+        "is_pro":          current_user.is_pro(),
+        "status":          sub.status if sub else ("active" if current_user.is_pro() else "free"),
+        "renewal_date":    renewal_date,
+        "period_start":    sub.current_period_start.isoformat() if sub and sub.current_period_start else None,
+        "billing_history": [l.to_dict() for l in logs],
+    }
 
 
 # ── Job listings (companies) ──────────────────────────────────────────────────

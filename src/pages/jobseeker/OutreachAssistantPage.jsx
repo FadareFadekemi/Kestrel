@@ -3,6 +3,8 @@ import { Search, Building2, Mail, CheckCircle, Copy, RotateCcw, Loader, AlertCir
 import useIsMobile from '../../hooks/useIsMobile';
 import { jsResearch, jsProfiling, jsEmail } from '../../services/jsApi';
 import { useTheme } from '../../context/ThemeContext';
+import { usePaywall } from '../../context/PaywallContext';
+import UsageIndicator from '../../components/UI/UsageIndicator';
 
 const JS_PROFILE_KEY  = 'kestrel_jobseeker_profile';
 const APPS_KEY        = 'kestrel_js_applications';
@@ -55,6 +57,7 @@ function Skeleton({ height = 16, width = '100%', style = {} }) {
 export default function OutreachAssistantPage() {
   const isMobile   = useIsMobile();
   const { colors: c } = useTheme();
+  const { checkAndProceed } = usePaywall();
   const profile    = readProfile();
   const targetRole = profile.targetRole || '';
 
@@ -84,6 +87,8 @@ export default function OutreachAssistantPage() {
   // Step 0 → 1: Research
   const handleResearch = async () => {
     if (!company.trim() || !role.trim()) return;
+    const allowed = await checkAndProceed('outreach_assistant', null);
+    if (!allowed) return;
     setLoading(true); setError(''); setStreaming(''); setStatus('');
     try {
       const result = await jsResearch(company.trim(), role.trim(), {
@@ -118,13 +123,21 @@ export default function OutreachAssistantPage() {
   // Step 2: Write email
   const handleWriteEmail = async () => {
     if (!compProfile || !research) return;
-    setLoading(true); setError(''); setStreaming(''); setStatus(`Writing ${tone} outreach email…`);
+    setLoading(true); setError(''); setStreaming(''); setEmail(null); setStatus(`Writing ${tone} outreach email…`);
     try {
+      const cvLines = [
+        profile.experience ? `Experience: ${profile.experience}` : '',
+        profile.education  ? `Education: ${profile.education}`   : '',
+        profile.location   ? `Location: ${profile.location}`     : '',
+        profile.skills     ? `Skills: ${Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills}` : '',
+      ].filter(Boolean);
       const candidate = {
         name:       profile.fullName || 'the candidate',
         targetRole: role,
+        cvData:     cvLines.join('\n'),
         experience: profile.experience || '',
-        skills:     '',
+        skills:     Array.isArray(profile.skills) ? profile.skills.join(', ') : (profile.skills || ''),
+        education:  profile.education || '',
       };
       const result = await jsEmail(compProfile, research, candidate, tone, {
         onStream: t => setStreaming(prev => prev + t),
@@ -139,9 +152,9 @@ export default function OutreachAssistantPage() {
 
   const handleCopy = () => {
     if (!email) return;
-    navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`).then(() => {
-      setCopyDone(true); setTimeout(() => setCopyDone(false), 2000);
-    });
+    navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`).then(
+      () => { setCopyDone(true); setTimeout(() => setCopyDone(false), 2500); },
+    );
   };
 
   const handleSaveToApplications = () => {
@@ -219,8 +232,11 @@ export default function OutreachAssistantPage() {
               </div>
             )}
 
+            <div style={{ marginTop: 12, marginBottom: 4 }}>
+              <UsageIndicator feature="outreach_assistant" />
+            </div>
             <button onClick={handleResearch} disabled={loading || !company.trim() || !role.trim()}
-              style={{ width: '100%', marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: loading ? 'rgba(0,212,200,0.06)' : 'rgba(0,212,200,0.15)', border: '1px solid rgba(0,212,200,0.3)', borderRadius: 10, padding: '12px', color: '#00D4C8', fontSize: 14, fontWeight: 700, cursor: (loading || !company.trim() || !role.trim()) ? 'not-allowed' : 'pointer', opacity: (!company.trim() || !role.trim()) ? 0.5 : 1 }}>
+              style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: loading ? 'rgba(0,212,200,0.06)' : 'rgba(0,212,200,0.15)', border: '1px solid rgba(0,212,200,0.3)', borderRadius: 10, padding: '12px', color: '#00D4C8', fontSize: 14, fontWeight: 700, cursor: (loading || !company.trim() || !role.trim()) ? 'not-allowed' : 'pointer', opacity: (!company.trim() || !role.trim()) ? 0.5 : 1 }}>
               {loading ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={15} />}
               {loading ? (status || 'Researching…') : 'Research & Score Company'}
             </button>
@@ -350,12 +366,35 @@ export default function OutreachAssistantPage() {
                 <div style={{ background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
                   <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Subject</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: c.txt, margin: '0 0 16px' }}>{email.subject}</p>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
-                  <p style={{ fontSize: 13, color: '#C5E8E6', margin: 0, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{email.body}</p>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
+                  <div style={{ fontSize: 13, color: '#C5E8E6', lineHeight: 1.85 }}>
+                    {(email.body || '').split(/\n\n+/).map((para, i) => (
+                      <p key={i} style={{ margin: i === 0 ? 0 : '14px 0 0' }}>{para}</p>
+                    ))}
+                  </div>
                 </div>
 
+                {/* Word count indicator */}
+                {(() => {
+                  const wc = email.wordCount || (email.body || '').split(/\s+/).filter(Boolean).length;
+                  const inRange = wc >= 400 && wc <= 600;
+                  const tooShort = wc < 400;
+                  const wcColor = inRange ? '#34d399' : tooShort ? '#f87171' : '#f59e0b';
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <div style={{ height: 3, flex: 1, background: c.brd, borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min(100, (wc / 600) * 100)}%`, background: wcColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: wcColor, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {wc} words
+                      </span>
+                      <span style={{ fontSize: 11, color: c.mut, whiteSpace: 'nowrap' }}>· 400–600 recommended</span>
+                    </div>
+                  );
+                })()}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  <span style={{ fontSize: 11, color: c.mut }}>{email.wordCount || '—'} words · {email.tone} tone</span>
+                  <span style={{ fontSize: 11, color: c.mut }}>{email.tone} tone</span>
                   <button onClick={handleSaveToApplications} disabled={saved}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, background: saved ? 'rgba(52,211,153,0.1)' : 'rgba(96,165,250,0.1)', border: `1px solid ${saved ? 'rgba(52,211,153,0.25)' : 'rgba(96,165,250,0.25)'}`, borderRadius: 8, padding: '8px 14px', color: saved ? '#34d399' : '#60a5fa', fontSize: 12, fontWeight: 600, cursor: saved ? 'default' : 'pointer' }}>
                     {saved ? <CheckCircle size={13} /> : <Zap size={13} />} {saved ? 'Saved to Applications' : 'Save to Applications'}
