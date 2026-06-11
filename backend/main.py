@@ -1388,7 +1388,14 @@ def _check_and_increment(db: Session, user: models.User, feature: str) -> tuple[
         db.commit()
         return True, {"allowed": True, "feature": feature, "used": record.usage_count, "limit": None}
 
-    if record.usage_count >= FREE_LIMIT:
+    # DEMO MODE — gate disabled so reviewers can test freely.
+    # Re-enable by removing the next two lines when going live.
+    record.usage_count += 1
+    record.updated_at   = datetime.now(timezone.utc)
+    db.commit()
+    return True, {"allowed": True, "feature": feature, "used": record.usage_count, "limit": FREE_LIMIT}
+
+    if record.usage_count >= FREE_LIMIT:  # noqa: unreachable
         db.commit()
         return False, {
             "allowed":     False,
