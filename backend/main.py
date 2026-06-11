@@ -1480,43 +1480,18 @@ async def create_subscription(
     if current_user.is_pro():
         raise HTTPException(status_code=400, detail="You are already on the Pro plan")
 
-    from services.paystack import create_customer, get_or_create_plan, initialize_subscription_transaction, PAYSTACK_PUBLIC_KEY
-
-    if not current_user.paystack_customer_code:
-        cust = await create_customer(current_user.email, current_user.name)
-        if cust["ok"]:
-            current_user.paystack_customer_code = cust["data"]["customer_code"]
-            sub = _get_or_create_subscription(db, current_user)
-            sub.paystack_customer_code = current_user.paystack_customer_code
-            db.commit()
-
-    plan_result = await get_or_create_plan()
-    if not plan_result["ok"]:
-        raise HTTPException(status_code=502, detail="Could not set up billing plan. Please try again.")
-
-    reference    = _generate_reference("subpro")
-    frontend_url = os.getenv("FRONTEND_URL", "")
-    callback_url = f"{frontend_url}/subscription/callback" if frontend_url.startswith("http") else ""
-
-    result = await initialize_subscription_transaction(
-        email=current_user.email,
-        plan_code=plan_result["plan_code"],
-        reference=reference,
-        callback_url=callback_url,
-        metadata={"user_id": current_user.id, "payment_type": "js_pro"},
-    )
-    if not result["ok"]:
-        raise HTTPException(status_code=502, detail=result["error"])
-
-    _log_payment(db, current_user.id, 200000, reference, "initiate", "js_pro", "pending")
-
-    return {
-        "authorization_url": result["data"]["authorization_url"],
-        "reference":         reference,
-        "public_key":        PAYSTACK_PUBLIC_KEY,
-        "email":             current_user.email,
-        "amount":            200000,
-    }
+    # DEMO MODE — payment gateway bypassed for reviewer testing.
+    # Swap this block back to the Paystack flow when going live.
+    sub = _get_or_create_subscription(db, current_user)
+    now = datetime.now(timezone.utc)
+    sub.plan                 = "pro"
+    sub.status               = "active"
+    sub.current_period_start = now
+    sub.current_period_end   = now + timedelta(days=365)
+    sub.updated_at           = now
+    current_user.js_plan     = "pro"
+    db.commit()
+    return {"success": True, "plan": "pro"}
 
 
 @app.post("/api/subscription/webhook")

@@ -48,30 +48,18 @@ export default function PaywallModal({ feature, usageInfo, user, onClose, onUpgr
     try {
       const data = await createSubscription();
 
-      if (data.authorization_url) {
-        window.location.href = data.authorization_url;
-        return;
-      }
-
-      if (!window.PaystackPop) {
-        setError('Payment service is loading. Please try again in a moment.');
+      // Demo mode — backend grants Pro directly
+      if (data.plan === 'pro') {
+        setSuccess(true);
+        onUpgradeSuccess?.();
         setLoading(false);
         return;
       }
 
-      const handler = window.PaystackPop.setup({
-        key:    data.public_key,
-        email:  data.email,
-        amount: data.amount,
-        ref:    data.reference,
-        onSuccess: async () => {
-          setSuccess(true);
-          onUpgradeSuccess?.();
-          setLoading(false);
-        },
-        onCancel: () => { setLoading(false); },
-      });
-      handler.openIframe();
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url;
+        return;
+      }
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
       setLoading(false);

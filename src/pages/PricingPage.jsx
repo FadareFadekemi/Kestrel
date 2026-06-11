@@ -47,9 +47,9 @@ export default function PricingPage({ onBack, onGetStarted, user, userPlan }) {
     setSubError('');
     try {
       const data = await createSubscription();
-      if (data.authorization_url) {
-        window.location.href = data.authorization_url;
-      }
+      // Demo mode — backend grants Pro directly, reload to reflect new plan
+      if (data.plan === 'pro') { window.location.reload(); return; }
+      if (data.authorization_url) { window.location.href = data.authorization_url; }
     } catch (err) {
       setSubError(err.message || 'Could not start subscription. Please try again.');
     } finally {
