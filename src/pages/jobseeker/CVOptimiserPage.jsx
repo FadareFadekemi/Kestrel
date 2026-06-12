@@ -77,7 +77,7 @@ function FileUploadZone({ onText, label = 'CV' }) {
         const formData = new FormData();
         formData.append('file', file);
         const token = getToken();
-        const r = await fetch('/api/cv/parse-file', {
+        const r = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/cv/parse-file`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
