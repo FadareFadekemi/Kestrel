@@ -416,6 +416,13 @@ class SendEmailRequest(BaseModel):
 def sse(event: str, data: dict) -> str:
     return f"data: {json.dumps({'event': event, 'data': data})}\n\n"
 
+# ── Health check ─────────────────────────────────────────────────────────────
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
 # ── Auth routes ───────────────────────────────────────────────────────────────
 
 @app.post("/api/auth/signup", status_code=201)

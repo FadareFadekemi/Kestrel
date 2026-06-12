@@ -13,6 +13,7 @@ import {
 } from '../../services/jobsApi';
 import { matchJD } from '../../services/jsApi';
 import { getPublicListings } from '../../services/paymentApi';
+import { authFetch } from '../../services/authApi';
 
 // Accent is always teal regardless of theme
 const A    = '#00D4C8';
@@ -372,7 +373,6 @@ export default function JobListingsPage() {
     if (flaggedIds.has(listingId)) return;
     setFlagLoading(listingId);
     try {
-      const { authFetch } = await import('../../services/authApi');
       const r = await authFetch(`/api/listings/${listingId}/flag`, {
         method: 'POST',
         body: JSON.stringify({ reason: 'Reported by job seeker' }),
