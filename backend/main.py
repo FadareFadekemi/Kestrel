@@ -1478,25 +1478,14 @@ def _get_or_create_subscription(db: Session, user: models.User) -> models.Subscr
 
 
 @app.post("/api/subscription/create")
-@limiter.limit("10/minute")
+@limiter.limit("20/minute")
 async def create_subscription(
     request:      Request,
     db:           Session       = Depends(get_db),
     current_user: models.User   = Depends(get_current_user),
 ):
-    if current_user.is_pro():
-        raise HTTPException(status_code=400, detail="You are already on the Pro plan")
-
-    # DEMO MODE — payment gateway bypassed for reviewer testing.
-    # Swap this block back to the Paystack flow when going live.
-    sub = _get_or_create_subscription(db, current_user)
-    now = datetime.now(timezone.utc)
-    sub.plan                 = "pro"
-    sub.status               = "active"
-    sub.current_period_start = now
-    sub.current_period_end   = now + timedelta(days=365)
-    sub.updated_at           = now
-    current_user.js_plan     = "pro"
+    # DEMO MODE — grant Pro instantly, no payment required.
+    current_user.js_plan = "pro"
     db.commit()
     return {"success": True, "plan": "pro"}
 
@@ -1611,30 +1600,10 @@ async def cancel_subscription_endpoint(
     db:           Session       = Depends(get_db),
     current_user: models.User   = Depends(get_current_user),
 ):
-    if not current_user.is_pro():
-        raise HTTPException(status_code=400, detail="No active Pro subscription to cancel")
-
-    sub   = db.query(models.Subscription).filter(models.Subscription.user_id == current_user.id).first()
-    code  = (sub.paystack_subscription_code if sub else "") or current_user.paystack_subscription_code
-    token = sub.paystack_email_token if sub else ""
-
-    if code:
-        from services.paystack import cancel_subscription
-        result = await cancel_subscription(code, token)
-        if not result["ok"]:
-            log.warning("Paystack cancel_subscription failed: %s", result.get("error"))
-
-    if sub:
-        sub.status     = "cancelled"
-        sub.updated_at = datetime.now(timezone.utc)
-    current_user.paystack_subscription_code = ""
+    # DEMO MODE — downgrade immediately, no Paystack call needed.
+    current_user.js_plan = "free"
     db.commit()
-
-    period_end = (sub.current_period_end if sub and sub.current_period_end else current_user.js_plan_expires_at)
-    return {
-        "message":      "Subscription cancelled. You keep Pro access until the end of your billing period.",
-        "access_until": period_end.isoformat() if period_end else None,
-    }
+    return {"message": "Subscription cancelled.", "access_until": None}
 
 
 @app.get("/api/subscription/status")
