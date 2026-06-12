@@ -100,6 +100,93 @@ async def run_suggest_skills(target_role: str, current_skills: list) -> AsyncGen
         yield chunk
 
 
+_CV_FORMAT_RULES = """
+OUTPUT FORMAT — cv_text must use this exact plain-text structure:
+
+[FULL NAME IN UPPERCASE]
+[Location] | [email] | [phone or LinkedIn]
+
+PROFESSIONAL SUMMARY
+[2-4 sentences]
+
+SKILLS
+[10-15 comma-separated skills, most relevant first]
+
+PROFESSIONAL EXPERIENCE
+
+[Job Title] | [Company Name] | [City, Country] | [Month Year – Month Year]
+• [Achievement starting with action verb, quantified where possible]
+• [Achievement 2]
+• [Achievement 3]
+
+EDUCATION
+
+[Degree] | [Institution Name] | [Year]
+
+CERTIFICATIONS
+• [Name] | [Year]
+
+ATS RULES:
+- Section headers EXACTLY as shown, ALL CAPS
+- No tables, columns, text boxes, graphics, headers, footers
+- Bullet points use • only
+- Quantify every achievement possible (numbers, %, ₦ values)
+- Strong action verbs: Led, Built, Increased, Reduced, Managed, Developed, Delivered
+- Use \\n for line breaks in the JSON string"""
+
+
+async def run_cv_rewrite(
+    cv_text: str, analysis: dict, target_role: str
+) -> AsyncGenerator[dict, None]:
+    yield {"event": "status", "data": {"text": "Rewriting your CV…"}}
+    improvements = " | ".join(
+        f"{i.get('section','')}: {i.get('issue','')}" for i in (analysis.get("improvements") or [])[:6]
+    )
+    async for chunk in _stream_json(
+        system=(
+            "You are an expert professional CV writer for Nigerian job seekers. "
+            "Rewrite the CV to be ATS-optimised, results-focused, and compelling. "
+            "Apply the suggested improvements and strengthen every bullet point with "
+            "action verbs and quantified achievements." + _CV_FORMAT_RULES
+        ),
+        user=(
+            f"TARGET ROLE: {target_role or 'not specified'}\n\n"
+            f"IMPROVEMENT NOTES: {improvements or 'general improvement'}\n\n"
+            f"ORIGINAL CV:\n{cv_text[:4000]}\n\n"
+            'Return ONLY valid JSON: {"cv_text": "full rewritten CV with \\n for newlines", "word_count": number}'
+        ),
+        temperature=0.4,
+    ):
+        yield chunk
+
+
+async def run_cv_rewrite_for_jd(
+    cv_text: str, jd_text: str, match_result: dict
+) -> AsyncGenerator[dict, None]:
+    yield {"event": "status", "data": {"text": "Rewriting CV for this role…"}}
+    missing   = ", ".join((match_result.get("missing_keywords") or [])[:20])
+    score     = match_result.get("match_score", "unknown")
+    async for chunk in _stream_json(
+        system=(
+            "You are an expert professional CV writer for Nigerian job seekers. "
+            "You are rewriting a CV specifically to target a job description and maximise ATS match score. "
+            "CRITICAL: Naturally incorporate ALL the missing keywords listed. "
+            "Rewrite bullet points to mirror the language and terminology of the JD. "
+            "Tailor the summary specifically to this role. "
+            "Keep all claims truthful — enhance language but do not invent experience." + _CV_FORMAT_RULES
+        ),
+        user=(
+            f"CURRENT MATCH SCORE: {score}% — target 80%+\n\n"
+            f"MISSING KEYWORDS TO INCORPORATE: {missing or 'none listed'}\n\n"
+            f"JOB DESCRIPTION:\n{jd_text[:2000]}\n\n"
+            f"ORIGINAL CV:\n{cv_text[:3000]}\n\n"
+            'Return ONLY valid JSON: {"cv_text": "full rewritten CV with \\n for newlines", "word_count": number}'
+        ),
+        temperature=0.4,
+    ):
+        yield chunk
+
+
 async def run_jd_match(cv_text: str, jd_text: str) -> AsyncGenerator[dict, None]:
     yield {"event": "status", "data": {"text": "Matching CV to job description…"}}
     async for chunk in _stream_json(

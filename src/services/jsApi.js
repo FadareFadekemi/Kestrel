@@ -72,6 +72,25 @@ export function improveSummary(summary, target_role, h)  { return streamPost('/a
 export function improveBullet(bullet, role, handlers)    { return streamPost('/api/js/cv/improve-bullet',   { bullet, role },                   handlers); }
 export function suggestSkills(target_role, current_skills, h) { return streamPost('/api/js/cv/suggest-skills', { target_role, current_skills }, h); }
 export function matchJD(cv_text, jd_text, handlers)      { return streamPost('/api/js/cv/jd-match',         { cv_text, jd_text },               handlers); }
+export function rewriteCV(cv_text, analysis, target_role, handlers)           { return streamPost('/api/js/cv/rewrite',        { cv_text, analysis, target_role }, handlers); }
+export function rewriteCVForJD(cv_text, jd_text, match_result, handlers)      { return streamPost('/api/js/cv/rewrite-for-jd', { cv_text, jd_text, match_result }, handlers); }
+
+export async function exportCV(cv_text, format, filename = 'cv') {
+  const token = getToken();
+  const r = await fetch(`${BASE}/api/js/cv/export`, {
+    method:  'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ cv_text, format, filename }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || 'Export failed');
+  }
+  return r.blob();
+}
 
 // ── Job Matching ──────────────────────────────────────────────────────────────
 

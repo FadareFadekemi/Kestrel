@@ -109,9 +109,11 @@ async def _fetch_jsearch(query: str, location: str, page: int) -> tuple[list, Op
                 })
             return jobs, None
     except httpx.HTTPStatusError as e:
-        return [], f"A job source returned error {e.response.status_code}"
+        if e.response.status_code == 429:
+            return [], None  # rate-limited — degrade silently, other sources still run
+        return [], "Some featured listings are temporarily unavailable"
     except Exception:
-        return [], "A job source is temporarily unavailable"
+        return [], None  # network error — degrade silently
 
 
 async def _fetch_arbeitnow(query: str, page: int) -> tuple[list, Optional[str]]:
@@ -137,9 +139,11 @@ async def _fetch_arbeitnow(query: str, page: int) -> tuple[list, Optional[str]]:
                 })
             return jobs, None
     except httpx.HTTPStatusError as e:
-        return [], f"A job source returned error {e.response.status_code}"
+        if e.response.status_code == 429:
+            return [], None
+        return [], "Some global listings are temporarily unavailable"
     except Exception:
-        return [], "A job source is temporarily unavailable"
+        return [], None
 
 
 async def _fetch_remotive(query: str) -> tuple[list, Optional[str]]:
@@ -166,9 +170,11 @@ async def _fetch_remotive(query: str) -> tuple[list, Optional[str]]:
                 })
             return jobs, None
     except httpx.HTTPStatusError as e:
-        return [], f"A job source returned error {e.response.status_code}"
+        if e.response.status_code == 429:
+            return [], None
+        return [], "Some remote listings are temporarily unavailable"
     except Exception:
-        return [], "A job source is temporarily unavailable"
+        return [], None
 
 
 # ── Public aggregator ─────────────────────────────────────────────────────────

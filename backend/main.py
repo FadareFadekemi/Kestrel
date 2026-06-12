@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import logging
 from datetime import datetime, timezone, timedelta
@@ -6,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-from fastapi import FastAPI, HTTPException, Depends, Request, Query, status
+from fastapi import FastAPI, HTTPException, Depends, Request, Query, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -341,6 +342,21 @@ class JSJDMatchRequest(BaseModel):
 
 class JSMatchingRequest(BaseModel):
     profile: dict
+
+class JSCVRewriteRequest(BaseModel):
+    cv_text:     str
+    analysis:    dict = {}
+    target_role: str  = ""
+
+class JSCVRewriteJDRequest(BaseModel):
+    cv_text:      str
+    jd_text:      str
+    match_result: dict = {}
+
+class JSCVExportRequest(BaseModel):
+    cv_text:  str
+    format:   str        # "docx" or "pdf"
+    filename: str = "cv"
 
 class JSScamRequest(BaseModel):
     text: str
@@ -867,6 +883,105 @@ async def js_jd_match(
         async for chunk in run_jd_match(req.cv_text, req.jd_text):
             yield sse(chunk["event"], chunk["data"])
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+@app.post("/api/js/cv/rewrite")
+@limiter.limit("10/minute")
+async def js_cv_rewrite(
+    request: Request,
+    req: JSCVRewriteRequest,
+    _: models.User = Depends(get_current_user),
+):
+    async def stream():
+        from services.js_cv import run_cv_rewrite
+        async for chunk in run_cv_rewrite(req.cv_text, req.analysis, req.target_role):
+            yield sse(chunk["event"], chunk["data"])
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.post("/api/js/cv/rewrite-for-jd")
+@limiter.limit("10/minute")
+async def js_cv_rewrite_for_jd(
+    request: Request,
+    req: JSCVRewriteJDRequest,
+    _: models.User = Depends(get_current_user),
+):
+    async def stream():
+        from services.js_cv import run_cv_rewrite_for_jd
+        async for chunk in run_cv_rewrite_for_jd(req.cv_text, req.jd_text, req.match_result):
+            yield sse(chunk["event"], chunk["data"])
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+@app.post("/api/js/cv/export")
+@limiter.limit("20/minute")
+async def js_cv_export(
+    request: Request,
+    req: JSCVExportRequest,
+    _: models.User = Depends(get_current_user),
+):
+    from services.cv_export import build_docx, build_pdf
+    from fastapi.responses import Response as FileResponse
+
+    fmt = req.format.lower()
+    if fmt == "docx":
+        content   = build_docx(req.cv_text)
+        mime      = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ext       = "docx"
+    elif fmt == "pdf":
+        content   = build_pdf(req.cv_text)
+        mime      = "application/pdf"
+        ext       = "pdf"
+    else:
+        raise HTTPException(status_code=400, detail="format must be 'docx' or 'pdf'")
+
+    safe_name = re.sub(r"[^\w\-]", "_", req.filename or "cv")
+    return FileResponse(
+        content=content,
+        media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}.{ext}"'},
+    )
+
+
+@app.post("/api/cv/parse-file")
+async def parse_cv_file(
+    request: Request,
+    _: models.User = Depends(get_current_user),
+):
+    try:
+        form    = await request.form()
+        upload  = form.get("file")
+        if upload is None:
+            raise HTTPException(status_code=400, detail="No file field received. Upload a PDF, DOCX, or TXT.")
+        content  = await upload.read()
+        filename = (upload.filename or "").lower()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not read upload: {exc}") from exc
+
+    try:
+        if filename.endswith(".txt"):
+            try:
+                text = content.decode("utf-8")
+            except UnicodeDecodeError:
+                text = content.decode("latin-1")
+        elif filename.endswith(".pdf"):
+            import fitz
+            doc  = fitz.open(stream=content, filetype="pdf")
+            text = "\n".join(page.get_text() for page in doc)
+        elif filename.endswith(".docx"):
+            import io
+            from docx import Document
+            doc  = Document(io.BytesIO(content))
+            text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type '{filename.split('.')[-1]}'. Upload PDF, DOCX, or TXT.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not parse file: {exc}") from exc
+    return {"text": text.strip()}
+
 
 @app.post("/api/js/matches")
 @limiter.limit("10/minute")

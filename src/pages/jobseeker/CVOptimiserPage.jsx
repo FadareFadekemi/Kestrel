@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
-import { FileText, Wand2, Download, Copy, Loader, CheckCircle, Plus, Trash2, AlertCircle, Zap } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { FileText, Wand2, Download, Copy, Loader, CheckCircle, Plus, Trash2, AlertCircle, Zap, Upload } from 'lucide-react';
 import useIsMobile from '../../hooks/useIsMobile';
-import { analyseCV, improveSummary, improveBullet, suggestSkills, matchJD } from '../../services/jsApi';
+import { analyseCV, improveSummary, improveBullet, suggestSkills, matchJD, rewriteCV, rewriteCVForJD, exportCV } from '../../services/jsApi';
 import { useTheme } from '../../context/ThemeContext';
 import { usePaywall } from '../../context/PaywallContext';
 import UsageIndicator from '../../components/UI/UsageIndicator';
+import { getToken } from '../../services/authApi';
 
 const JS_PROFILE_KEY = 'kestrel_jobseeker_profile';
 const CV_BUILDER_KEY = 'kestrel_cv_builder';
@@ -51,6 +52,79 @@ const Skeleton = ({ height = 16, width = '100%', style = {} }) => {
 };
 
 function scoreColor(s) { return s >= 70 ? '#34d399' : s >= 40 ? '#00D4C8' : '#f87171'; }
+
+function FileUploadZone({ onText, label = 'CV' }) {
+  const { colors: c } = useTheme();
+  const [dragging, setDragging]   = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState('');
+  const inputRef = useRef(null);
+
+  const processFile = async (file) => {
+    setUploadErr('');
+    setUploading(true);
+    try {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.txt')) {
+        const text = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload  = e => res(e.target.result);
+          reader.onerror = rej;
+          reader.readAsText(file);
+        });
+        onText(text);
+      } else if (name.endsWith('.pdf') || name.endsWith('.docx')) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const token = getToken();
+        const r = await fetch('/api/cv/parse-file', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          const msg = typeof err.detail === 'string' ? err.detail : 'Could not parse file — try copy-pasting instead.';
+          throw new Error(msg);
+        }
+        const data = await r.json();
+        onText(data.text || '');
+      } else {
+        setUploadErr('Please upload a PDF, DOCX, or TXT file.');
+      }
+    } catch (err) {
+      setUploadErr(err.message || 'Failed to read file.');
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div
+      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f); }}
+      onClick={() => inputRef.current?.click()}
+      style={{ border: `2px dashed ${dragging ? '#00D4C8' : '#264040'}`, borderRadius: 8, padding: '14px 20px', textAlign: 'center', cursor: 'pointer', background: dragging ? 'rgba(0,212,200,0.05)' : 'transparent', marginBottom: 10, transition: 'all 0.15s' }}
+    >
+      <input ref={inputRef} type="file" accept=".txt,.pdf,.docx" style={{ display: 'none' }}
+        onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value = ''; }} />
+      {uploading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#00D4C8', fontSize: 12 }}>
+          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Reading file…
+        </div>
+      ) : (
+        <>
+          <Upload size={15} color={dragging ? '#00D4C8' : '#264040'} style={{ marginBottom: 5 }} />
+          <p style={{ fontSize: 12, color: dragging ? '#00D4C8' : c.mut, margin: 0 }}>
+            Upload {label} — drag & drop or <span style={{ color: '#00D4C8', textDecoration: 'underline' }}>browse</span>
+          </p>
+          <p style={{ fontSize: 11, color: '#264040', margin: '3px 0 0' }}>PDF · DOCX · TXT</p>
+        </>
+      )}
+      {uploadErr && <p style={{ fontSize: 11, color: '#f87171', margin: '5px 0 0' }}>{uploadErr}</p>}
+    </div>
+  );
+}
 
 export default function CVOptimiserPage() {
   const isMobile  = useIsMobile();
@@ -212,6 +286,44 @@ export default function CVOptimiserPage() {
     setFixingIdx(null);
   };
 
+  // ── Tab 1 rewrite state ───────────────────────────────────────────────────────
+  const [cvRewrite,      setCvRewrite]      = useState('');
+  const [cvRewriting,    setCvRewriting]    = useState(false);
+  const [cvRewriteErr,   setCvRewriteErr]   = useState('');
+  const [cvRewriteCopy,  setCvRewriteCopy]  = useState(false);
+  const [cvExporting,    setCvExporting]    = useState('');
+
+  const handleRewriteCV = async () => {
+    if (!cvText.trim()) return;
+    setCvRewriting(true); setCvRewriteErr(''); setCvRewrite('');
+    try {
+      const result = await rewriteCV(cvText, analysisResult || {}, targetRole, {
+        onStatus: () => {},
+      });
+      if (result?.cv_text) setCvRewrite(result.cv_text);
+      else setCvRewriteErr('Rewrite returned no content.');
+    } catch (err) {
+      setCvRewriteErr(err.message || 'Rewrite failed.');
+    }
+    setCvRewriting(false);
+  };
+
+  const handleExport = async (format, text, baseName) => {
+    setCvExporting(format);
+    try {
+      const blob = await exportCV(text, format, baseName);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${baseName}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setCvRewriteErr(err.message || 'Export failed.');
+    }
+    setCvExporting('');
+  };
+
   // ── JD Matcher state ─────────────────────────────────────────────────────────
   const [jdCvText,    setJdCvText]    = useState('');
   const [jdText,      setJdText]      = useState('');
@@ -234,6 +346,44 @@ export default function CVOptimiserPage() {
       setMatchError(err.message || 'Match failed. Try again.');
     }
     setMatching(false);
+  };
+
+  // ── JD rewrite state ─────────────────────────────────────────────────────────
+  const [jdRewrite,      setJdRewrite]      = useState('');
+  const [jdRewriting,    setJdRewriting]    = useState(false);
+  const [jdRewriteErr,   setJdRewriteErr]   = useState('');
+  const [jdRewriteCopy,  setJdRewriteCopy]  = useState(false);
+  const [jdExporting,    setJdExporting]    = useState('');
+
+  const handleRewriteCVForJD = async () => {
+    if (!jdCvText.trim() || !jdText.trim()) return;
+    setJdRewriting(true); setJdRewriteErr(''); setJdRewrite('');
+    try {
+      const result = await rewriteCVForJD(jdCvText, jdText, matchResult || {}, {
+        onStatus: () => {},
+      });
+      if (result?.cv_text) setJdRewrite(result.cv_text);
+      else setJdRewriteErr('Rewrite returned no content.');
+    } catch (err) {
+      setJdRewriteErr(err.message || 'Rewrite failed.');
+    }
+    setJdRewriting(false);
+  };
+
+  const handleJdExport = async (format, text, baseName) => {
+    setJdExporting(format);
+    try {
+      const blob = await exportCV(text, format, baseName);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${baseName}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setJdRewriteErr(err.message || 'Export failed.');
+    }
+    setJdExporting('');
   };
 
   const applyMatchSuggestion = (suggestion) => {
@@ -404,7 +554,7 @@ export default function CVOptimiserPage() {
                   </button>
                 </div>
               </div>
-              <pre style={{ fontFamily: 'monospace', fontSize: 11, color: '#C5E8E6', background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '14px 16px', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 520, overflowY: 'auto', lineHeight: 1.7, margin: 0 }}>
+              <pre style={{ fontFamily: 'monospace', fontSize: 11, color: c.txt, background: c.bg, border: `1px solid ${c.brd}`, borderRadius: 8, padding: '14px 16px', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 520, overflowY: 'auto', lineHeight: 1.7, margin: 0 }}>
                 {buildPreviewText() || 'Start filling in sections on the left to see your CV preview here…'}
               </pre>
             </div>
@@ -416,11 +566,12 @@ export default function CVOptimiserPage() {
       {activeTab === 1 && (
         <div style={{ maxWidth: 800 }}>
           <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Paste your CV text</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Your CV</p>
+            <FileUploadZone onText={setCvText} label="CV" />
             <textarea value={cvText} onChange={e => setCvText(e.target.value)}
               onFocus={onFocus} onBlur={onBlur}
-              placeholder="Copy and paste the full text of your CV here. The AI will score it across Content, Format, Keywords, and Length — and give you specific rewrite suggestions."
-              rows={10} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box' }} />
+              placeholder="…or paste your CV text here. The AI will score it across Content, Format, Keywords, and Length — and give you specific rewrite suggestions."
+              rows={8} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 11, color: '#264040' }}>{cvText.length} chars</span>
@@ -484,9 +635,9 @@ export default function CVOptimiserPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1 }}>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item.section}</span>
-                            <p style={{ fontSize: 12, color: c.mut2, margin: '4px 0 6px', lineHeight: 1.5 }}>{item.issue}</p>
+                            <p style={{ fontSize: 12, color: c.txt, margin: '4px 0 6px', lineHeight: 1.5 }}>{item.issue}</p>
                             {item.rewrite && (
-                              <p style={{ fontSize: 12, color: '#C5E8E6', margin: 0, lineHeight: 1.6, background: 'rgba(0,212,200,0.05)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 6, padding: '8px 10px' }}>
+                              <p style={{ fontSize: 12, color: c.txt, margin: 0, lineHeight: 1.6, background: 'rgba(0,212,200,0.05)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 6, padding: '8px 10px' }}>
                                 <span style={{ fontWeight: 600, color: '#00D4C8' }}>Suggested: </span>{item.rewrite}
                               </p>
                             )}
@@ -507,6 +658,64 @@ export default function CVOptimiserPage() {
             </div>
           )}
 
+          {/* Rewrite panel — appears after analysis */}
+          {analysisResult && !analysing && (
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: c.txt, margin: 0 }}>Rewrite & Improve CV</p>
+                  <p style={{ fontSize: 12, color: c.mut, margin: '3px 0 0' }}>AI rewrites your full CV — stronger language, quantified achievements, ATS-ready</p>
+                </div>
+                {!cvRewrite && (
+                  <button onClick={handleRewriteCV} disabled={cvRewriting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, background: cvRewriting ? 'rgba(0,212,200,0.06)' : 'rgba(0,212,200,0.15)', border: '1px solid rgba(0,212,200,0.3)', borderRadius: 8, padding: '9px 16px', color: '#00D4C8', fontSize: 13, fontWeight: 600, cursor: cvRewriting ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                    {cvRewriting ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Wand2 size={14} />}
+                    {cvRewriting ? 'Rewriting…' : 'Rewrite CV'}
+                  </button>
+                )}
+              </div>
+
+              {cvRewriteErr && (
+                <div style={{ display: 'flex', gap: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+                  <AlertCircle size={13} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12, color: '#fca5a5' }}>{cvRewriteErr}</span>
+                </div>
+              )}
+
+              {cvRewrite && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: c.mut }}>Edit below before exporting</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={handleRewriteCV} disabled={cvRewriting}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: `1px solid ${c.brd}`, borderRadius: 6, padding: '5px 10px', color: c.mut, fontSize: 11, cursor: 'pointer' }}>
+                        <Wand2 size={11} /> Regenerate
+                      </button>
+                      <button onClick={() => { navigator.clipboard.writeText(cvRewrite).then(() => { setCvRewriteCopy(true); setTimeout(() => setCvRewriteCopy(false), 2000); }); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: cvRewriteCopy ? 'rgba(52,211,153,0.1)' : 'rgba(0,212,200,0.1)', border: `1px solid ${cvRewriteCopy ? 'rgba(52,211,153,0.25)' : 'rgba(0,212,200,0.25)'}`, borderRadius: 6, padding: '5px 10px', color: cvRewriteCopy ? '#34d399' : '#00D4C8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                        {cvRewriteCopy ? <CheckCircle size={11} /> : <Copy size={11} />} {cvRewriteCopy ? 'Copied!' : 'Copy'}
+                      </button>
+                      <button onClick={() => handleExport('docx', cvRewrite, `${profile.fullName || 'cv'}_techcori`)} disabled={!!cvExporting}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', borderRadius: 6, padding: '5px 10px', color: '#60a5fa', fontSize: 11, fontWeight: 600, cursor: cvExporting ? 'not-allowed' : 'pointer' }}>
+                        {cvExporting === 'docx' ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={11} />} Word
+                      </button>
+                      <button onClick={() => handleExport('pdf', cvRewrite, `${profile.fullName || 'cv'}_techcori`)} disabled={!!cvExporting}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 6, padding: '5px 10px', color: '#f87171', fontSize: 11, fontWeight: 600, cursor: cvExporting ? 'not-allowed' : 'pointer' }}>
+                        {cvExporting === 'pdf' ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={11} />} PDF
+                      </button>
+                    </div>
+                  </div>
+                  <textarea value={cvRewrite} onChange={e => setCvRewrite(e.target.value)}
+                    onFocus={onFocus} onBlur={onBlur}
+                    rows={22} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7 }} />
+                  <p style={{ fontSize: 11, color: c.mut, margin: '6px 0 0' }}>
+                    Times New Roman · ATS-optimised · Single column — ready to send
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           {!analysisResult && !analysing && !analysisError && (
             <div style={{ background: c.card, border: '1px dashed #264040', borderRadius: 12, padding: '40px 20px', textAlign: 'center' }}>
               <FileText size={28} color="#264040" style={{ marginBottom: 12 }} />
@@ -521,10 +730,11 @@ export default function CVOptimiserPage() {
         <div style={{ maxWidth: 800 }}>
           <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Your CV</p>
+            <FileUploadZone onText={setJdCvText} label="CV" />
             <textarea value={jdCvText} onChange={e => setJdCvText(e.target.value)}
               onFocus={onFocus} onBlur={onBlur}
-              placeholder="Paste your full CV text here…"
-              rows={6} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box', marginBottom: 16 }} />
+              placeholder="…or paste your CV text here"
+              rows={5} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box', marginBottom: 16 }} />
 
             <p style={{ fontSize: 13, fontWeight: 600, color: c.txt, margin: '0 0 12px' }}>Job Description</p>
             <textarea value={jdText} onChange={e => setJdText(e.target.value)}
@@ -606,7 +816,7 @@ export default function CVOptimiserPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1 }}>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.section}</span>
-                            <p style={{ fontSize: 12, color: '#C5E8E6', margin: '6px 0 0', lineHeight: 1.6 }}>{s.rewrite}</p>
+                            <p style={{ fontSize: 12, color: c.txt, margin: '6px 0 0', lineHeight: 1.6 }}>{s.rewrite}</p>
                           </div>
                           {s.section === 'Summary' && (
                             <button onClick={() => applyMatchSuggestion(s)}
@@ -619,6 +829,64 @@ export default function CVOptimiserPage() {
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* JD Rewrite panel — appears after match */}
+          {matchResult && !matching && (
+            <div style={{ background: c.card, border: `1px solid ${c.brd}`, borderRadius: 12, padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: c.txt, margin: 0 }}>Rewrite CV for this Role</p>
+                  <p style={{ fontSize: 12, color: c.mut, margin: '3px 0 0' }}>Tailors your CV to the JD — injects missing keywords, mirrors the job language, targets 80%+ match</p>
+                </div>
+                {!jdRewrite && (
+                  <button onClick={handleRewriteCVForJD} disabled={jdRewriting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 7, background: jdRewriting ? 'rgba(0,212,200,0.06)' : 'rgba(0,212,200,0.15)', border: '1px solid rgba(0,212,200,0.3)', borderRadius: 8, padding: '9px 16px', color: '#00D4C8', fontSize: 13, fontWeight: 600, cursor: jdRewriting ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                    {jdRewriting ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Wand2 size={14} />}
+                    {jdRewriting ? 'Rewriting…' : 'Rewrite for this Role'}
+                  </button>
+                )}
+              </div>
+
+              {jdRewriteErr && (
+                <div style={{ display: 'flex', gap: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+                  <AlertCircle size={13} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12, color: '#fca5a5' }}>{jdRewriteErr}</span>
+                </div>
+              )}
+
+              {jdRewrite && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: c.mut }}>Edit below before exporting</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={handleRewriteCVForJD} disabled={jdRewriting}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: `1px solid ${c.brd}`, borderRadius: 6, padding: '5px 10px', color: c.mut, fontSize: 11, cursor: 'pointer' }}>
+                        <Wand2 size={11} /> Regenerate
+                      </button>
+                      <button onClick={() => { navigator.clipboard.writeText(jdRewrite).then(() => { setJdRewriteCopy(true); setTimeout(() => setJdRewriteCopy(false), 2000); }); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: jdRewriteCopy ? 'rgba(52,211,153,0.1)' : 'rgba(0,212,200,0.1)', border: `1px solid ${jdRewriteCopy ? 'rgba(52,211,153,0.25)' : 'rgba(0,212,200,0.25)'}`, borderRadius: 6, padding: '5px 10px', color: jdRewriteCopy ? '#34d399' : '#00D4C8', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                        {jdRewriteCopy ? <CheckCircle size={11} /> : <Copy size={11} />} {jdRewriteCopy ? 'Copied!' : 'Copy'}
+                      </button>
+                      <button onClick={() => handleJdExport('docx', jdRewrite, `${profile.fullName || 'cv'}_tailored`)} disabled={!!jdExporting}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.25)', borderRadius: 6, padding: '5px 10px', color: '#60a5fa', fontSize: 11, fontWeight: 600, cursor: jdExporting ? 'not-allowed' : 'pointer' }}>
+                        {jdExporting === 'docx' ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={11} />} Word
+                      </button>
+                      <button onClick={() => handleJdExport('pdf', jdRewrite, `${profile.fullName || 'cv'}_tailored`)} disabled={!!jdExporting}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 6, padding: '5px 10px', color: '#f87171', fontSize: 11, fontWeight: 600, cursor: jdExporting ? 'not-allowed' : 'pointer' }}>
+                        {jdExporting === 'pdf' ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={11} />} PDF
+                      </button>
+                    </div>
+                  </div>
+                  <textarea value={jdRewrite} onChange={e => setJdRewrite(e.target.value)}
+                    onFocus={onFocus} onBlur={onBlur}
+                    rows={22} style={{ ...textareaStyle, width: '100%', boxSizing: 'border-box', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7 }} />
+                  <p style={{ fontSize: 11, color: c.mut, margin: '6px 0 0' }}>
+                    Times New Roman · ATS-optimised · Tailored to this job description
+                  </p>
+                </>
               )}
             </div>
           )}

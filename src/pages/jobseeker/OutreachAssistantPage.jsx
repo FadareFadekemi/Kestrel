@@ -250,19 +250,16 @@ export default function OutreachAssistantPage() {
               <Loader size={15} style={{ animation: 'spin 1s linear infinite', color: '#00D4C8' }} />
               {status || 'Scoring company fit…'}
             </div>
-            {streaming && <p style={{ fontSize: 13, color: c.mut, margin: 0, lineHeight: 1.7, fontFamily: 'monospace' }}>{streaming}</p>}
-            {!streaming && (
-              <div>
-                <Skeleton height={14} width="70%" style={{ marginBottom: 8 }} />
-                <Skeleton height={14} width="50%" style={{ marginBottom: 16 }} />
-                {[100, 80, 65, 90].map((w, i) => (
-                  <div key={i} style={{ marginBottom: 10 }}>
-                    <Skeleton height={10} width={`${w}%`} style={{ marginBottom: 4 }} />
-                    <Skeleton height={5} />
-                  </div>
-                ))}
-              </div>
-            )}
+            <div>
+              <Skeleton height={14} width="70%" style={{ marginBottom: 8 }} />
+              <Skeleton height={14} width="50%" style={{ marginBottom: 16 }} />
+              {[100, 80, 65, 90].map((w, i) => (
+                <div key={i} style={{ marginBottom: 10 }}>
+                  <Skeleton height={10} width={`${w}%`} style={{ marginBottom: 4 }} />
+                  <Skeleton height={5} />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -295,12 +292,12 @@ export default function OutreachAssistantPage() {
                     <div style={{ marginBottom: 12 }}>
                       <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Hiring signals</p>
                       <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
-                        {compProfile.hiringSignals.slice(0, 3).map((s, i) => <li key={i} style={{ fontSize: 12, color: c.mut2, marginBottom: 4, lineHeight: 1.5 }}>{s}</li>)}
+                        {compProfile.hiringSignals.map((s, i) => <li key={i} style={{ fontSize: 12, color: c.mut2, marginBottom: 4, lineHeight: 1.5 }}>{s}</li>)}
                       </ul>
                     </div>
                   )}
                   {compProfile.hiringManagerHint && (
-                    <div style={{ background: 'rgba(0,212,200,0.05)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 7, padding: '8px 10px' }}>
+                    <div style={{ background: 'rgba(0,212,200,0.05)', border: '1px solid rgba(0,212,200,0.15)', borderRadius: 7, padding: '8px 10px', marginTop: 8 }}>
                       <p style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', margin: '0 0 3px' }}>Likely recipient</p>
                       <p style={{ fontSize: 12, color: c.mut2, margin: 0 }}>{compProfile.hiringManagerHint}</p>
                     </div>
@@ -309,6 +306,26 @@ export default function OutreachAssistantPage() {
               </div>
 
               {compProfile.scoreReasoning && <p style={{ fontSize: 12, color: c.mut, margin: '14px 0 0', lineHeight: 1.6 }}>{compProfile.scoreReasoning}</p>}
+
+              {/* Pain points */}
+              {compProfile.painPoints?.length > 0 && (
+                <div style={{ marginTop: 16, background: 'rgba(248,113,113,0.04)', border: '1px solid rgba(248,113,113,0.12)', borderRadius: 8, padding: '12px 14px' }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#f87171', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Business pain points</p>
+                  <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+                    {compProfile.painPoints.map((p, i) => <li key={i} style={{ fontSize: 12, color: c.mut2, marginBottom: 4, lineHeight: 1.5 }}>{p}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Key insights */}
+              {compProfile.keyInsights?.length > 0 && (
+                <div style={{ marginTop: 12, background: 'rgba(0,212,200,0.03)', border: '1px solid rgba(0,212,200,0.1)', borderRadius: 8, padding: '12px 14px' }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#00D4C8', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Key insights</p>
+                  <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+                    {compProfile.keyInsights.map((k, i) => <li key={i} style={{ fontSize: 12, color: c.mut2, marginBottom: 4, lineHeight: 1.5 }}>{k}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Tone selector */}
@@ -338,8 +355,7 @@ export default function OutreachAssistantPage() {
                 </button>
               )}
 
-              {loading && streaming && <p style={{ fontSize: 12, color: c.mut, margin: '12px 0 0', lineHeight: 1.7, fontFamily: 'monospace' }}>{streaming}</p>}
-              {loading && !streaming && status && (
+              {loading && status && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, color: c.mut, fontSize: 12 }}>
                   <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> {status}
                 </div>
@@ -367,7 +383,7 @@ export default function OutreachAssistantPage() {
                   <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Subject</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: c.txt, margin: '0 0 16px' }}>{email.subject}</p>
                   <p style={{ fontSize: 11, fontWeight: 600, color: c.mut, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Body</p>
-                  <div style={{ fontSize: 13, color: '#C5E8E6', lineHeight: 1.85 }}>
+                  <div style={{ fontSize: 13, color: c.txt, lineHeight: 1.85 }}>
                     {(email.body || '').split(/\n\n+/).map((para, i) => (
                       <p key={i} style={{ margin: i === 0 ? 0 : '14px 0 0' }}>{para}</p>
                     ))}
