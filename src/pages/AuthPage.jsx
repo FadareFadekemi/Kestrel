@@ -4,7 +4,7 @@ import { Zap, Mail, Lock, User, Loader, AlertCircle, Eye, EyeOff,
 import { login, signup } from '../services/authApi';
 import { useTheme } from '../context/ThemeContext';
 
-const BASE = '/api';
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
 async function requestPasswordReset(email) {
   const r = await fetch(`${BASE}/auth/forgot-password`, {
