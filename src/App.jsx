@@ -70,6 +70,15 @@ function AppInner() {
 
   const historyReady = useRef(false);
 
+  // Keep backend warm — ping every 2 minutes to prevent free-tier spin-down
+  useEffect(() => {
+    const url = `${import.meta.env.VITE_API_URL || ''}/api/health`;
+    const ping = () => fetch(url).catch(() => {});
+    ping();
+    const id = setInterval(ping, 2 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Load Paystack popup script on mount
   useEffect(() => { loadPaystackScript(); }, []);
 
